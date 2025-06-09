@@ -22,3 +22,6 @@ Route::middleware([
         return Inertia::render('Dashboard');
     })->name('dashboard');
 });
+
+Route::get('/ask', [AskController::class, 'index'])->name('ask.index');
+Route::post('/ask', [AskController::class, 'ask'])->name('ask.post');
