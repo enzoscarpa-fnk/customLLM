@@ -3,15 +3,14 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\AskController;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return redirect()->route('ask.index');
 });
+
+Route::get('/ask', [AskController::class, 'index'])->name('ask.index');
+Route::post('/ask', [AskController::class, 'ask'])->name('ask.post');
 
 Route::middleware([
     'auth:sanctum',
@@ -22,6 +21,3 @@ Route::middleware([
         return Inertia::render('Dashboard');
     })->name('dashboard');
 });
-
-Route::get('/ask', [AskController::class, 'index'])->name('ask.index');
-Route::post('/ask', [AskController::class, 'ask'])->name('ask.post');
