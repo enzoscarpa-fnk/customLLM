@@ -7,7 +7,7 @@ use App\Http\Controllers\AskController;
 use App\Http\Controllers\ConversationController;
 
 Route::get('/', function () {
-    return redirect()->route('ask.index');
+    return redirect()->route('chat.index');
 });
 
 Route::get('/ask', [AskController::class, 'index'])->name('ask.index');
