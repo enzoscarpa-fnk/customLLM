@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\AskController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\UserInstructionController;
 
 Route::get('/', function () {
     return redirect()->route('chat.index');
@@ -27,4 +28,5 @@ Route::middleware([
     Route::get('/chat/{conversation}', [ConversationController::class, 'show'])->name('chat.show');
     Route::delete('/chat/{conversation}', [ConversationController::class, 'destroy'])->name('chat.destroy');
     Route::post('/chat/{conversation}/message', [ConversationController::class, 'addMessage'])->name('chat.message');
+    Route::post('/instructions', [UserInstructionController::class, 'store'])->name('instructions.store');
 });

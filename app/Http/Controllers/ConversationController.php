@@ -41,6 +41,7 @@ class ConversationController extends Controller
             'messages' => $messages,
             'models' => $models,
             'userPreferredModel' => $user->preferred_model,
+            'userInstructions' => $user->getInstructionsOrDefault(),
         ]);
     }
 
