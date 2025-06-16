@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import { useChat } from '@/Composables/useChat'
 
@@ -9,13 +9,15 @@ const props = defineProps({
     conversationId: Number
 })
 
-const emit = defineEmits(['update-model'])
+const emit = defineEmits(['update-model', 'message-sent'])
 
 const { createNewConversation, sendMessage, isLoading } = useChat()
 
+const textareaRef = ref(null)
+
 const form = useForm({
     message: '',
-    model: props.selectedModel
+    model: props.selectedModel || ''
 })
 
 // Watch for changes in selectedModel prop and update form
@@ -24,6 +26,24 @@ watch(() => props.selectedModel, (newModel) => {
         form.model = newModel
     }
 }, { immediate: true })
+
+onMounted(() => {
+    focusTextarea()
+})
+
+watch(() => isLoading.value, (newLoading, oldLoading) => {
+    if (oldLoading && !newLoading) {
+        nextTick(() => {
+            focusTextarea()
+        })
+    }
+})
+
+const focusTextarea = () => {
+    if (textareaRef.value) {
+        textareaRef.value.focus()
+    }
+}
 
 const isNewConversation = computed(() => {
     return !props.conversationId
@@ -35,16 +55,24 @@ const submit = async () => {
     const message = form.message
     const model = form.model
 
+    // Emit message immediately to parent for UI update
+    emit('message-sent', {
+        content: message,
+        role: 'user',
+        model_name: model,
+        created_at: new Date().toISOString()
+    })
+
     // Update parent component about model change
     emit('update-model', model)
+
+    form.reset('message')
 
     if (isNewConversation.value) {
         await createNewConversation(message, model)
     } else {
         await sendMessage(message, props.conversationId, model)
     }
-
-    form.reset('message')
 }
 
 const updateModel = (model) => {
@@ -87,11 +115,12 @@ const handleKeydown = (event) => {
         <!-- Message Input -->
         <div class="relative">
             <textarea
+                ref="textareaRef"
                 v-model="form.message"
                 @keydown="handleKeydown"
                 rows="3"
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-12"
-                placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+                placeholder="Type your message..."
                 :disabled="isLoading"
             ></textarea>
 

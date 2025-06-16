@@ -23,6 +23,22 @@ const startNewChat = () => {
     router.get(route('chat.index'))
 }
 
+const deleteConversation = (conversation, event) => {
+    event.stopPropagation()
+
+    if (confirm('Are you sure you want to delete this conversation?')) {
+        router.delete(route('chat.destroy', conversation.id), {
+            preserveState: false, // Force full page reload to update the conversations list
+            onSuccess: () => {
+                // Optionally redirect to chat index if the user deleted the active conversation
+                if (props.activeConversation?.id === conversation.id) {
+                    router.get(route('chat.index'))
+                }
+            }
+        })
+    }
+}
+
 const formatDate = (dateString) => {
     const date = new Date(dateString)
     const now = new Date()
@@ -62,7 +78,7 @@ const formatDate = (dateString) => {
                     v-for="conversation in sortedConversations"
                     :key="conversation.id"
                     @click="selectConversation(conversation)"
-                    class="p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-100"
+                    class="group p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-100"
                     :class="{
                         'bg-blue-50 border-l-4 border-blue-500': activeConversation?.id === conversation.id,
                         'hover:bg-gray-50': activeConversation?.id !== conversation.id
@@ -78,9 +94,18 @@ const formatDate = (dateString) => {
                             </p>
                         </div>
                         <div class="ml-2 flex-shrink-0">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
                                 {{ conversation.model_name.split('/').pop() }}
                             </span>
+                            <button
+                                @click="deleteConversation(conversation, $event)"
+                                class="ml-2 align-sub opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700 hover:bg-gray-200 rounded transition-all"
+                                title="Delete conversation"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>

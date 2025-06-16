@@ -40,14 +40,37 @@ class Conversation extends Model
         $this->update(['last_message_at' => now()]);
     }
 
-    public function generateTitle(): void
+    public function generateTitleWithAI(): void
     {
-        $firstUserMessage = $this->messages()->where('role', 'user')->first();
-        if ($firstUserMessage && $this->title === 'New chat') {
-            // We'll implement title generation in Phase 4
-            $this->update([
-                'title' => \Str::limit($firstUserMessage->content, 50)
-            ]);
+        $firstAssistantMessage = $this->messages()->where('role', 'assistant')->first();
+        if ($firstAssistantMessage && $this->title === 'New chat') {
+            try {
+                $chatService = app(\App\Services\ChatService::class);
+
+                $titlePrompt = [
+                    [
+                        'role' => 'user',
+                        'content' => "Generate a short, descriptive title (maximum 6 words) for a conversation based on this AI response: \n\n" . $firstAssistantMessage->content
+                    ]
+                ];
+
+                $generatedTitle = $chatService->sendMessage(
+                    messages: $titlePrompt,
+                    model: $this->model_name
+                );
+
+                // Clean and limit the generated title
+                $title = trim(str_replace(['"', "'", "\n", "\r"], '', $generatedTitle));
+                $title = \Str::limit($title, 60);
+
+                $this->update(['title' => $title]);
+
+            } catch (\Exception $e) {
+                // Fallback to simple title if AI generation fails
+                $content = strip_tags($firstAssistantMessage->content);
+                $title = \Str::limit($content, 50);
+                $this->update(['title' => $title]);
+            }
         }
     }
 }

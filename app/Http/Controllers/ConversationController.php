@@ -94,8 +94,8 @@ class ConversationController extends Controller
             // Update conversation timestamp
             $conversation->updateLastMessageTime();
 
-            // Generate title based on first message
-            $conversation->generateTitle();
+            // Generate title based on assistant's first message
+            $conversation->generateTitleWithAI();
 
             return redirect()->route('chat.show', $conversation);
 
@@ -106,6 +106,24 @@ class ConversationController extends Controller
             return redirect()->back()->with('error', 'Failed to get AI response: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Delete existing conversation
+     */
+    public function destroy(Conversation $conversation)
+    {
+        $user = auth()->user();
+
+        // Check ownership
+        if ($conversation->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $conversation->delete();
+
+        return redirect()->route('chat.index')->with('message', 'Conversation deleted successfully');
+    }
+
 
     /**
      * Add message to existing conversation

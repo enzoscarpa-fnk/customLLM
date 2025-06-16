@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import MessageList from './MessageList.vue'
 import MessageInput from './MessageInput.vue'
 
@@ -12,13 +12,48 @@ const props = defineProps({
 
 const emit = defineEmits(['update-model'])
 
+const localMessages = ref([...props.messages])
+const isCreatingConversation = ref(false)
+
 const hasActiveConversation = computed(() => {
     return props.activeConversation !== null
+})
+
+const shouldShowMessages = computed(() => {
+    return hasActiveConversation.value || isCreatingConversation.value
 })
 
 const updateModel = (model) => {
     emit('update-model', model)
 }
+
+const handleMessageSent = (message) => {
+    if (!hasActiveConversation.value) {
+        isCreatingConversation.value = true
+    }
+
+    localMessages.value.push({
+        ...message,
+        id: 'temp-' + Date.now()
+    })
+}
+
+watch(() => props.messages, (newMessages) => {
+    const hasTemporaryMessages = localMessages.value.some(msg =>
+        typeof msg.id === 'string' && msg.id.startsWith('temp-')
+    )
+
+    if (!hasTemporaryMessages || newMessages.length > localMessages.value.length) {
+        localMessages.value = [...newMessages]
+    }
+}, { deep: true })
+
+watch(() => props.activeConversation, (newConversation) => {
+    localMessages.value = [...props.messages]
+    if (newConversation) {
+        isCreatingConversation.value = false
+    }
+}, { immediate: true })
 </script>
 
 <template>
@@ -35,6 +70,14 @@ const updateModel = (model) => {
                     </p>
                 </div>
             </div>
+            <div v-else-if="isCreatingConversation" class="text-center">
+                <h1 class="text-lg font-semibold text-gray-900">
+                    New Conversation
+                </h1>
+                <p class="text-sm text-gray-500">
+                    Creating your conversation...
+                </p>
+            </div>
             <div v-else class="text-center">
                 <h1 class="text-lg font-semibold text-gray-900">
                     Start a new conversation
@@ -48,8 +91,8 @@ const updateModel = (model) => {
         <!-- Messages Area -->
         <div class="flex-1 overflow-hidden">
             <MessageList
-                v-if="hasActiveConversation"
-                :messages="messages"
+                v-if="shouldShowMessages"
+                :messages="localMessages"
             />
             <div v-else class="h-full flex items-center justify-center">
                 <div class="text-center text-gray-500">
@@ -69,6 +112,7 @@ const updateModel = (model) => {
                 :selected-model="selectedModel"
                 :conversation-id="activeConversation?.id"
                 @update-model="updateModel"
+                @message-sent="handleMessageSent"
             />
         </div>
     </div>

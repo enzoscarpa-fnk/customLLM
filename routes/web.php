@@ -25,5 +25,6 @@ Route::middleware([
     Route::get('/chat', [ConversationController::class, 'index'])->name('chat.index');
     Route::post('/chat', [ConversationController::class, 'store'])->name('chat.store');
     Route::get('/chat/{conversation}', [ConversationController::class, 'show'])->name('chat.show');
+    Route::delete('/chat/{conversation}', [ConversationController::class, 'destroy'])->name('chat.destroy');
     Route::post('/chat/{conversation}/message', [ConversationController::class, 'addMessage'])->name('chat.message');
 });
