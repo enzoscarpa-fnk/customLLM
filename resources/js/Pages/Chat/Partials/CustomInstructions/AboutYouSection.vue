@@ -1,14 +1,17 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
 
 const props = defineProps({
     modelValue: String,
     existingData: Object
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'dataUpdated'])
 
 const aboutYou = ref(props.modelValue || '')
+const isEditing = ref(false)
+const isLoading = ref(false)
 
 const existingAboutYou = ref(props.existingData?.about_you || '')
 
@@ -48,11 +51,72 @@ const insertExample = (example) => {
 
 const editExisting = () => {
     aboutYou.value = existingAboutYou.value
-    document.getElementById('about-you')?.focus()
+    isEditing.value = true
+    setTimeout(() => {
+        document.getElementById('about-you')?.focus()
+    }, 100)
 }
 
-const clearExisting = () => {
-    aboutYou.value = ''
+const saveChanges = async () => {
+    if (!aboutYou.value.trim()) {
+        return
+    }
+
+    isLoading.value = true
+
+    try {
+        router.post(route('instructions.update'), {
+            type: 'about_you',
+            data: aboutYou.value
+        }, {
+            preserveState: true,
+            onSuccess: (page) => {
+                existingAboutYou.value = aboutYou.value
+                isEditing.value = false
+                emit('dataUpdated', page.props.userInstructions)
+            },
+            onError: (errors) => {
+                console.error('Error saving changes:', errors)
+            }
+        })
+    } catch (error) {
+        console.error('Error saving changes:', error)
+    } finally {
+        isLoading.value = false
+    }
+}
+
+const deleteExisting = async () => {
+    if (!confirm('Are you sure you want to delete your "About You" information?')) {
+        return
+    }
+
+    isLoading.value = true
+
+    try {
+        router.delete(route('instructions.delete'), {
+            data: { type: 'about_you' },
+            preserveState: true,
+            onSuccess: (page) => {
+                existingAboutYou.value = ''
+                aboutYou.value = ''
+                isEditing.value = false
+                emit('dataUpdated', page.props.userInstructions)
+            },
+            onError: (errors) => {
+                console.error('Error deleting:', errors)
+            }
+        })
+    } catch (error) {
+        console.error('Error deleting:', error)
+    } finally {
+        isLoading.value = false
+    }
+}
+
+const cancelEdit = () => {
+    aboutYou.value = existingAboutYou.value
+    isEditing.value = false
 }
 </script>
 
@@ -70,7 +134,7 @@ const clearExisting = () => {
         </div>
 
         <!-- Current Description Section -->
-        <div v-if="existingAboutYou && existingAboutYou.trim()" class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div v-if="existingAboutYou && existingAboutYou.trim() && !isEditing" class="bg-green-50 border border-green-200 rounded-lg p-4">
             <div class="flex items-start justify-between">
                 <div class="flex-1">
                     <h4 class="text-sm font-medium text-green-900 mb-2 flex items-center">
@@ -86,7 +150,8 @@ const clearExisting = () => {
                 <div class="ml-4 flex space-x-2">
                     <button
                         @click="editExisting"
-                        class="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors"
+                        :disabled="isLoading"
+                        class="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors disabled:opacity-50"
                         title="Edit this description"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,9 +159,10 @@ const clearExisting = () => {
                         </svg>
                     </button>
                     <button
-                        @click="clearExisting"
-                        class="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                        title="Clear description"
+                        @click="deleteExisting"
+                        :disabled="isLoading"
+                        class="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                        title="Delete description"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -107,7 +173,7 @@ const clearExisting = () => {
         </div>
 
         <!-- Empty State for Current Description -->
-        <div v-else class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+        <div v-else-if="!existingAboutYou || !existingAboutYou.trim()" class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
             <div class="text-gray-400 mb-2">
                 <svg class="mx-auto h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
@@ -118,7 +184,7 @@ const clearExisting = () => {
         </div>
 
         <!-- Edit/Add Section -->
-        <div>
+        <div v-if="isEditing || !existingAboutYou || !existingAboutYou.trim()">
             <label for="about-you" class="block text-sm font-medium text-gray-700 mb-2">
                 {{ existingAboutYou && existingAboutYou.trim() ? 'Edit Your Information' : 'Add Your Information' }}
             </label>
@@ -128,10 +194,30 @@ const clearExisting = () => {
                 rows="8"
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 placeholder="Describe yourself, your profession, interests, goals, and expertise level..."
+                :disabled="isLoading"
             ></textarea>
             <p class="mt-2 text-xs text-gray-500">
                 {{ aboutYou.length }}/2000 characters
             </p>
+
+            <!-- Action Buttons for Editing -->
+            <div v-if="isEditing" class="flex space-x-3 mt-4">
+                <button
+                    @click="saveChanges"
+                    :disabled="isLoading || !aboutYou.trim()"
+                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <span v-if="isLoading">Saving...</span>
+                    <span v-else>Save Changes</span>
+                </button>
+                <button
+                    @click="cancelEdit"
+                    :disabled="isLoading"
+                    class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
+                >
+                    Cancel
+                </button>
+            </div>
         </div>
 
         <!-- Tips & Suggestions -->
@@ -146,7 +232,7 @@ const clearExisting = () => {
         </div>
 
         <!-- Examples -->
-        <div>
+        <div v-if="!isEditing">
             <h4 class="text-sm font-medium text-gray-900 mb-3">📝 Example Descriptions</h4>
             <div class="space-y-2">
                 <div

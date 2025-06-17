@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+import { useForm, router, usePage } from '@inertiajs/vue3'
 import AboutYouSection from './AboutYouSection.vue'
 import BehaviorSection from './BehaviorSection.vue'
 import CommandsSection from './CommandsSection.vue'
@@ -12,16 +12,14 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 
-const initializeForm = () => {
-    return {
-        about_you: props.userInstructions?.about_you || '',
-        behavior: props.userInstructions?.behavior || '',
-        custom_commands: props.userInstructions?.custom_commands || [],
-        enabled: props.userInstructions?.enabled ?? true
-    }
-}
+const userInstructionsData = ref(props.userInstructions || {})
 
-const form = useForm(initializeForm())
+const form = useForm({
+    about_you: userInstructionsData.value?.about_you || '',
+    behavior: userInstructionsData.value?.behavior || '',
+    custom_commands: userInstructionsData.value?.custom_commands || [],
+    enabled: userInstructionsData.value?.enabled ?? true
+})
 
 const activeTab = ref('about')
 
@@ -31,7 +29,17 @@ const tabs = [
     { id: 'commands', label: 'Commands', icon: '⚡' }
 ]
 
+const validateCommands = () => {
+    const commandNames = form.custom_commands.map(cmd => cmd.name)
+    const uniqueNames = new Set(commandNames)
+    return commandNames.length === uniqueNames.size
+}
+
 const save = () => {
+    if (!validateCommands()) {
+        return
+    }
+
     form.post(route('instructions.store'), {
         preserveState: true,
         onSuccess: () => {
@@ -44,21 +52,62 @@ const save = () => {
     })
 }
 
+const toggleEnabled = async () => {
+    try {
+        router.post(route('instructions.toggle'), {
+            enabled: form.enabled
+        }, {
+            preserveState: true,
+            onSuccess: (page) => {
+                userInstructionsData.value = page.props.userInstructions
+                emit('saved')
+            }
+        })
+    } catch (error) {
+        console.error('Error toggling instructions:', error)
+    }
+}
+
 const closeModal = () => {
     emit('close')
+}
+
+const handleDataUpdated = (newInstructions) => {
+    userInstructionsData.value = newInstructions
+
+    // Update form data
+    form.about_you = newInstructions?.about_you || ''
+    form.behavior = newInstructions?.behavior || ''
+    form.custom_commands = newInstructions?.custom_commands || []
+    form.enabled = newInstructions?.enabled ?? true
+
+    emit('saved')
 }
 
 // Watch for show prop changes to reset form
 watch(() => props.show, (newShow) => {
     if (newShow) {
-        const newData = initializeForm()
+        userInstructionsData.value = props.userInstructions || {}
+        form.about_you = userInstructionsData.value?.about_you || ''
+        form.behavior = userInstructionsData.value?.behavior || ''
+        form.custom_commands = userInstructionsData.value?.custom_commands || []
+        form.enabled = userInstructionsData.value?.enabled ?? true
 
-        form.about_you = newData.about_you
-        form.behavior = newData.behavior
-        form.custom_commands = newData.custom_commands
-        form.enabled = newData.enabled
+        console.log('Modal opened with data:', userInstructionsData.value)
+    }
+})
 
-        console.log('Modal opened with data:', newData)
+// Watch for userInstructions prop changes
+watch(() => props.userInstructions, (newInstructions) => {
+    if (newInstructions) {
+        userInstructionsData.value = newInstructions
+    }
+}, { deep: true })
+
+// Watch for enabled toggle
+watch(() => form.enabled, (newValue, oldValue) => {
+    if (oldValue !== undefined && newValue !== oldValue) {
+        toggleEnabled()
     }
 })
 </script>
@@ -141,20 +190,22 @@ watch(() => props.show, (newShow) => {
                     <AboutYouSection
                         v-if="activeTab === 'about'"
                         v-model="form.about_you"
-                        :existing-data="userInstructions"
+                        :existing-data="userInstructionsData"
+                        @data-updated="handleDataUpdated"
                     />
                     <BehaviorSection
                         v-if="activeTab === 'behavior'"
                         v-model="form.behavior"
-                        :existing-data="userInstructions"
+                        :existing-data="userInstructionsData"
+                        @data-updated="handleDataUpdated"
                     />
                     <CommandsSection
                         v-if="activeTab === 'commands'"
                         v-model="form.custom_commands"
-                        :existing-data="userInstructions"
+                        :existing-data="userInstructionsData"
+                        @data-updated="handleDataUpdated"
                     />
                 </div>
-
 
                 <!-- Footer -->
                 <div class="flex items-center justify-end pt-6 space-x-3 border-t border-gray-200">
@@ -162,7 +213,7 @@ watch(() => props.show, (newShow) => {
                         @click="closeModal"
                         class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
-                        Cancel
+                        Close
                     </button>
                     <button
                         @click="save"
@@ -170,7 +221,7 @@ watch(() => props.show, (newShow) => {
                         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                     >
                         <span v-if="form.processing">Saving...</span>
-                        <span v-else>Save Instructions</span>
+                        <span v-else>Save All Instructions</span>
                     </button>
                 </div>
             </div>

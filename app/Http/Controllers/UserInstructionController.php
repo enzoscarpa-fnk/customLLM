@@ -40,6 +40,172 @@ class UserInstructionController extends Controller
         return redirect()->back()->with('message', 'Instructions saved successfully!');
     }
 
+    /**
+     * Update specific instruction type
+     */
+    public function update(Request $request)
+    {
+        $request->validate([
+            'type' => 'required|in:about_you,behavior,custom_commands',
+            'data' => 'required'
+        ]);
+
+        $user = Auth::user();
+        $instructions = $user->instructions;
+
+        if (!$instructions) {
+            $instructions = $user->instructions()->create([
+                'about_you' => '',
+                'behavior' => '',
+                'custom_commands' => [],
+                'enabled' => true
+            ]);
+        }
+
+        // Validate the data based on type
+        if ($request->type === 'about_you' || $request->type === 'behavior') {
+            $request->validate([
+                'data' => 'string|max:2000'
+            ]);
+        } elseif ($request->type === 'custom_commands') {
+            $request->validate([
+                'data' => 'array',
+                'data.*.name' => 'required|string|starts_with:/',
+                'data.*.description' => 'required|string|max:200',
+                'data.*.response' => 'required|string|max:500'
+            ]);
+        }
+
+        $instructions->update([
+            $request->type => $request->data
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Instruction updated successfully',
+                'instructions' => $user->getInstructionsOrDefault()
+            ]);
+        }
+
+        return redirect()->back()->with('message', 'Instruction updated successfully');
+    }
+
+    /**
+     * Delete specific instruction type
+     */
+    public function delete(Request $request)
+    {
+        $request->validate([
+            'type' => 'required|in:about_you,behavior,custom_commands'
+        ]);
+
+        $user = Auth::user();
+        $instructions = $user->instructions;
+
+        if (!$instructions) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No instructions to delete',
+                    'instructions' => $user->getInstructionsOrDefault()
+                ]);
+            }
+            return redirect()->back()->with('message', 'No instructions to delete');
+        }
+
+        if ($request->type === 'custom_commands') {
+            $instructions->update(['custom_commands' => []]);
+        } else {
+            $instructions->update([$request->type => '']);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Instruction deleted successfully',
+                'instructions' => $user->getInstructionsOrDefault()
+            ]);
+        }
+
+        return redirect()->back()->with('message', 'Instruction deleted successfully');
+    }
+
+    /**
+     * Delete specific custom command
+     */
+    public function deleteCommand(Request $request)
+    {
+        $request->validate([
+            'command_name' => 'required|string'
+        ]);
+
+        $user = Auth::user();
+        $instructions = $user->instructions;
+
+        if (!$instructions) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No commands to delete',
+                    'instructions' => $user->getInstructionsOrDefault()
+                ]);
+            }
+            return redirect()->back()->with('message', 'No commands to delete');
+        }
+
+        $commands = $instructions->custom_commands ?? [];
+        $commands = array_filter($commands, function($command) use ($request) {
+            return $command['name'] !== $request->command_name;
+        });
+
+        $instructions->update(['custom_commands' => array_values($commands)]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Command deleted successfully',
+                'instructions' => $user->getInstructionsOrDefault()
+            ]);
+        }
+
+        return redirect()->back()->with('message', 'Command deleted successfully');
+    }
+
+    /**
+     * Toggle instructions enabled/disabled
+     */
+    public function toggle(Request $request)
+    {
+        $request->validate([
+            'enabled' => 'required|boolean'
+        ]);
+
+        $user = Auth::user();
+        $instructions = $user->instructions;
+
+        if (!$instructions) {
+            $instructions = $user->instructions()->create([
+                'about_you' => '',
+                'behavior' => '',
+                'custom_commands' => [],
+                'enabled' => $request->enabled
+            ]);
+        } else {
+            $instructions->update(['enabled' => $request->enabled]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Instructions ' . ($request->enabled ? 'enabled' : 'disabled'),
+                'instructions' => $user->getInstructionsOrDefault()
+            ]);
+        }
+
+        return redirect()->back()->with('message', 'Instructions ' . ($request->enabled ? 'enabled' : 'disabled'));
+    }
+
     private function mergeField(?string $newValue, ?string $existingValue): ?string
     {
         if ($newValue !== null) {
