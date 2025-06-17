@@ -141,16 +141,20 @@ watch(() => props.show, (newShow) => {
                     <AboutYouSection
                         v-if="activeTab === 'about'"
                         v-model="form.about_you"
+                        :existing-data="userInstructions"
                     />
                     <BehaviorSection
                         v-if="activeTab === 'behavior'"
                         v-model="form.behavior"
+                        :existing-data="userInstructions"
                     />
                     <CommandsSection
                         v-if="activeTab === 'commands'"
                         v-model="form.custom_commands"
+                        :existing-data="userInstructions"
                     />
                 </div>
+
 
                 <!-- Footer -->
                 <div class="flex items-center justify-end pt-6 space-x-3 border-t border-gray-200">

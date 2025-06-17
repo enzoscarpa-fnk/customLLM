@@ -2,12 +2,15 @@
 import { ref, watch } from 'vue'
 
 const props = defineProps({
-    modelValue: String
+    modelValue: String,
+    existingData: Object
 })
 
 const emit = defineEmits(['update:modelValue'])
 
 const behavior = ref(props.modelValue || '')
+
+const existingBehavior = ref(props.existingData?.behavior || '')
 
 const presets = [
     {
@@ -59,6 +62,10 @@ watch(() => props.modelValue, (newValue) => {
     behavior.value = newValue || ''
 })
 
+watch(() => props.existingData?.behavior, (newValue) => {
+    existingBehavior.value = newValue || ''
+})
+
 const applyPreset = (preset) => {
     if (behavior.value) {
         behavior.value += '\n\n' + preset.template
@@ -73,6 +80,15 @@ const addCustomOption = (option) => {
         behavior.value += addition
     }
 }
+
+const editExisting = () => {
+    behavior.value = existingBehavior.value
+    document.getElementById('behavior')?.focus()
+}
+
+const clearExisting = () => {
+    behavior.value = ''
+}
 </script>
 
 <template>
@@ -86,6 +102,55 @@ const addCustomOption = (option) => {
             <p class="mt-1 text-sm text-gray-600">
                 Define how you want the assistant to interact with you. This includes tone, response format, and explanation style.
             </p>
+        </div>
+
+        <!-- Current Behavior Section -->
+        <div v-if="existingBehavior && existingBehavior.trim()" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <h4 class="text-sm font-medium text-blue-900 mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Current Behavior Settings
+                    </h4>
+                    <div class="text-sm text-blue-800 bg-white rounded p-3 border border-blue-200">
+                        <p class="whitespace-pre-wrap">{{ existingBehavior }}</p>
+                    </div>
+                </div>
+                <div class="ml-4 flex space-x-2">
+                    <button
+                        @click="editExisting"
+                        class="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+                        title="Edit behavior settings"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </button>
+                    <button
+                        @click="clearExisting"
+                        class="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                        title="Clear behavior settings"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State for Current Behavior -->
+        <div v-else class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+            <div class="text-gray-400 mb-2">
+                <svg class="mx-auto h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+            </div>
+            <p class="text-sm text-gray-500">No behavior settings configured yet</p>
+            <p class="text-xs text-gray-400 mt-1">Choose a preset or create custom behavior below</p>
         </div>
 
         <!-- Quick Presets -->
@@ -110,7 +175,7 @@ const addCustomOption = (option) => {
         <!-- Custom Behavior Input -->
         <div>
             <label for="behavior" class="block text-sm font-medium text-gray-700 mb-2">
-                Custom Behavior Instructions
+                {{ existingBehavior && existingBehavior.trim() ? 'Edit Behavior Instructions' : 'Custom Behavior Instructions' }}
             </label>
             <textarea
                 id="behavior"
@@ -147,9 +212,9 @@ const addCustomOption = (option) => {
         </div>
 
         <!-- Preview -->
-        <div v-if="behavior" class="bg-green-50 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-green-900 mb-2">✅ Current Behavior Settings</h4>
-            <div class="text-sm text-green-800 bg-white rounded p-3 border border-green-200">
+        <div v-if="behavior && behavior !== existingBehavior" class="bg-yellow-50 rounded-lg p-4">
+            <h4 class="text-sm font-medium text-yellow-900 mb-2">📝 Preview Changes</h4>
+            <div class="text-sm text-yellow-800 bg-white rounded p-3 border border-yellow-200">
                 <p class="whitespace-pre-wrap">{{ behavior }}</p>
             </div>
         </div>

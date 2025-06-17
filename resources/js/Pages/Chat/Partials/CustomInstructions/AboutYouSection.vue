@@ -2,12 +2,15 @@
 import { ref, watch } from 'vue'
 
 const props = defineProps({
-    modelValue: String
+    modelValue: String,
+    existingData: Object
 })
 
 const emit = defineEmits(['update:modelValue'])
 
 const aboutYou = ref(props.modelValue || '')
+
+const existingAboutYou = ref(props.existingData?.about_you || '')
 
 const examples = [
     "I'm an entrepreneur in the green technology sector, looking to innovate in renewable energy.",
@@ -31,12 +34,25 @@ watch(() => props.modelValue, (newValue) => {
     aboutYou.value = newValue || ''
 })
 
+watch(() => props.existingData?.about_you, (newValue) => {
+    existingAboutYou.value = newValue || ''
+})
+
 const insertExample = (example) => {
     if (aboutYou.value) {
         aboutYou.value += '\n\n' + example
     } else {
         aboutYou.value = example
     }
+}
+
+const editExisting = () => {
+    aboutYou.value = existingAboutYou.value
+    document.getElementById('about-you')?.focus()
+}
+
+const clearExisting = () => {
+    aboutYou.value = ''
 }
 </script>
 
@@ -53,10 +69,58 @@ const insertExample = (example) => {
             </p>
         </div>
 
-        <!-- Main Input -->
+        <!-- Current Description Section -->
+        <div v-if="existingAboutYou && existingAboutYou.trim()" class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <h4 class="text-sm font-medium text-green-900 mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Current Description
+                    </h4>
+                    <div class="text-sm text-green-800 bg-white rounded p-3 border border-green-200">
+                        <p class="whitespace-pre-wrap">{{ existingAboutYou }}</p>
+                    </div>
+                </div>
+                <div class="ml-4 flex space-x-2">
+                    <button
+                        @click="editExisting"
+                        class="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors"
+                        title="Edit this description"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </button>
+                    <button
+                        @click="clearExisting"
+                        class="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                        title="Clear description"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State for Current Description -->
+        <div v-else class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+            <div class="text-gray-400 mb-2">
+                <svg class="mx-auto h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+            </div>
+            <p class="text-sm text-gray-500">No description configured yet</p>
+            <p class="text-xs text-gray-400 mt-1">Add information about yourself below</p>
+        </div>
+
+        <!-- Edit/Add Section -->
         <div>
             <label for="about-you" class="block text-sm font-medium text-gray-700 mb-2">
-                Your Information
+                {{ existingAboutYou && existingAboutYou.trim() ? 'Edit Your Information' : 'Add Your Information' }}
             </label>
             <textarea
                 id="about-you"

@@ -2,12 +2,19 @@
 import { ref, watch, computed } from 'vue'
 
 const props = defineProps({
-    modelValue: Array
+    modelValue: Array,
+    existingData: Object
 })
 
 const emit = defineEmits(['update:modelValue'])
 
 const commands = ref(props.modelValue || [])
+
+const existingCommands = ref(props.existingData?.custom_commands || [])
+
+watch(() => props.existingData?.custom_commands, (newValue) => {
+    existingCommands.value = newValue || []
+}, { deep: true })
 
 const newCommand = ref({
     name: '',
@@ -97,6 +104,23 @@ const formatCommandName = () => {
         newCommand.value.name = '/' + newCommand.value.name
     }
 }
+
+const editExistingCommand = (command) => {
+    newCommand.value = { ...command }
+    const commandExists = commands.value.some(cmd => cmd.name === command.name)
+    if (!commandExists) {
+        commands.value.push({ ...command })
+    }
+}
+
+const removeExistingCommand = (index) => {
+    commands.value = existingCommands.value.filter((_, i) => i !== index)
+    emit('update:modelValue', commands.value)
+}
+
+const clearAllCommands = () => {
+    commands.value = []
+}
 </script>
 
 <template>
@@ -113,18 +137,80 @@ const formatCommandName = () => {
         </div>
 
         <!-- Existing Commands -->
+        <div v-if="existingCommands.length > 0">
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="text-sm font-medium text-gray-900 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Your Commands ({{ existingCommands.length }})
+                </h4>
+                <button
+                    @click="clearAllCommands"
+                    class="text-xs text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                >
+                    Clear All
+                </button>
+            </div>
+            <div class="space-y-3">
+                <div
+                    v-for="(command, index) in existingCommands"
+                    :key="`existing-${command.name}-${index}`"
+                    class="group p-4 bg-purple-50 rounded-lg border border-purple-200 hover:border-purple-300 transition-all"
+                >
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 cursor-pointer" @click="editExistingCommand(command)">
+                            <div class="flex items-center mb-2">
+                                <code class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm font-mono">
+                                    {{ command.name }}
+                                </code>
+                                <span class="ml-2 text-sm font-medium text-gray-900">
+                                    {{ command.description }}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600">{{ command.response }}</p>
+                            <p class="text-xs text-purple-600 mt-1">Click to edit this command</p>
+                        </div>
+                        <div class="ml-4 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                                @click="editExistingCommand(command)"
+                                class="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-100 rounded transition-colors"
+                                title="Edit command"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+            <div class="text-gray-400 mb-3">
+                <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+            </div>
+            <h4 class="text-sm font-medium text-gray-900 mb-1">No Commands Yet</h4>
+            <p class="text-sm text-gray-500">Create your first custom command below</p>
+        </div>
+
+        <!-- Commands edition -->
         <div v-if="commands.length > 0">
-            <h4 class="text-sm font-medium text-gray-900 mb-3">📋 Your Commands</h4>
+            <h4 class="text-sm font-medium text-gray-900 mb-3">📝 Commands to Save</h4>
             <div class="space-y-3">
                 <div
                     v-for="(command, index) in commands"
-                    :key="index"
-                    class="p-4 bg-gray-50 rounded-lg border border-gray-200"
+                    :key="`editing-${command.name}-${index}`"
+                    class="p-4 bg-yellow-50 rounded-lg border border-yellow-200"
                 >
                     <div class="flex items-start justify-between">
                         <div class="flex-1">
                             <div class="flex items-center mb-2">
-                                <code class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-mono">
+                                <code class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-sm font-mono">
                                     {{ command.name }}
                                 </code>
                                 <span class="ml-2 text-sm font-medium text-gray-900">
