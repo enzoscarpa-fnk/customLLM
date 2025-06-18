@@ -80,15 +80,24 @@ class UserInstructionController extends Controller
             $request->type => $request->data
         ]);
 
+        // Get fresh instructions data
+        $user->refresh();
+        $updatedInstructions = $user->getInstructionsOrDefault();
+
+        // Log for debugging
+        Log::info('UserInstructionController update - Updated instructions:', $updatedInstructions);
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Instruction updated successfully',
-                'instructions' => $user->getInstructionsOrDefault()
+                'instructions' => $updatedInstructions
             ]);
         }
 
-        return redirect()->back()->with('message', 'Instruction updated successfully');
+        return redirect()->back()
+            ->with('message', 'Instruction updated successfully')
+            ->with('userInstructions', $updatedInstructions);
     }
 
     /**
@@ -104,14 +113,18 @@ class UserInstructionController extends Controller
         $instructions = $user->instructions;
 
         if (!$instructions) {
+            $updatedInstructions = $user->getInstructionsOrDefault();
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'No instructions to delete',
-                    'instructions' => $user->getInstructionsOrDefault()
+                    'instructions' => $updatedInstructions
                 ]);
             }
-            return redirect()->back()->with('message', 'No instructions to delete');
+            return redirect()->back()
+                ->with('message', 'No instructions to delete')
+                ->with('userInstructions', $updatedInstructions);
         }
 
         if ($request->type === 'custom_commands') {
@@ -120,15 +133,23 @@ class UserInstructionController extends Controller
             $instructions->update([$request->type => '']);
         }
 
+        // Get fresh instructions data
+        $user->refresh();
+        $updatedInstructions = $user->getInstructionsOrDefault();
+
+        Log::info('UserInstructionController delete - Updated instructions:', $updatedInstructions);
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Instruction deleted successfully',
-                'instructions' => $user->getInstructionsOrDefault()
+                'instructions' => $updatedInstructions
             ]);
         }
 
-        return redirect()->back()->with('message', 'Instruction deleted successfully');
+        return redirect()->back()
+            ->with('message', 'Instruction deleted successfully')
+            ->with('userInstructions', $updatedInstructions);
     }
 
     /**
@@ -144,14 +165,18 @@ class UserInstructionController extends Controller
         $instructions = $user->instructions;
 
         if (!$instructions) {
+            $updatedInstructions = $user->getInstructionsOrDefault();
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'No commands to delete',
-                    'instructions' => $user->getInstructionsOrDefault()
+                    'instructions' => $updatedInstructions
                 ]);
             }
-            return redirect()->back()->with('message', 'No commands to delete');
+            return redirect()->back()
+                ->with('message', 'No commands to delete')
+                ->with('userInstructions', $updatedInstructions);
         }
 
         $commands = $instructions->custom_commands ?? [];
@@ -161,15 +186,23 @@ class UserInstructionController extends Controller
 
         $instructions->update(['custom_commands' => array_values($commands)]);
 
+        // Get fresh instructions data
+        $user->refresh();
+        $updatedInstructions = $user->getInstructionsOrDefault();
+
+        Log::info('UserInstructionController deleteCommand - Updated instructions:', $updatedInstructions);
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Command deleted successfully',
-                'instructions' => $user->getInstructionsOrDefault()
+                'instructions' => $updatedInstructions
             ]);
         }
 
-        return redirect()->back()->with('message', 'Command deleted successfully');
+        return redirect()->back()
+            ->with('message', 'Command deleted successfully')
+            ->with('userInstructions', $updatedInstructions);
     }
 
     /**
@@ -195,15 +228,23 @@ class UserInstructionController extends Controller
             $instructions->update(['enabled' => $request->enabled]);
         }
 
+        // Get fresh instructions data
+        $user->refresh();
+        $updatedInstructions = $user->getInstructionsOrDefault();
+
+        Log::info('UserInstructionController toggle - Updated instructions:', $updatedInstructions);
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Instructions ' . ($request->enabled ? 'enabled' : 'disabled'),
-                'instructions' => $user->getInstructionsOrDefault()
+                'instructions' => $updatedInstructions
             ]);
         }
 
-        return redirect()->back()->with('message', 'Instructions ' . ($request->enabled ? 'enabled' : 'disabled'));
+        return redirect()->back()
+            ->with('message', 'Instructions ' . ($request->enabled ? 'enabled' : 'disabled'))
+            ->with('userInstructions', $updatedInstructions);
     }
 
     private function mergeField(?string $newValue, ?string $existingValue): ?string

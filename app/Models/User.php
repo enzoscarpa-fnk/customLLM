@@ -31,6 +31,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'preferred_model',
     ];
 
     /**
@@ -89,12 +90,33 @@ class User extends Authenticatable
 
     public function getInstructionsOrDefault()
     {
-        return $this->instructions ?? new UserInstruction([
+        // Load the relationship if not already loaded
+        if (!$this->relationLoaded('instructions')) {
+            $this->load('instructions');
+        }
+
+        if ($this->instructions) {
+            return [
+                'id' => $this->instructions->id,
+                'user_id' => $this->instructions->user_id,
+                'about_you' => $this->instructions->about_you ?? '',
+                'behavior' => $this->instructions->behavior ?? '',
+                'custom_commands' => $this->instructions->custom_commands ?? [],
+                'enabled' => $this->instructions->enabled ?? true,
+                'created_at' => $this->instructions->created_at,
+                'updated_at' => $this->instructions->updated_at,
+            ];
+        }
+
+        return [
+            'id' => null,
             'user_id' => $this->id,
             'about_you' => '',
             'behavior' => '',
             'custom_commands' => [],
-            'enabled' => true
-        ]);
+            'enabled' => true,
+            'created_at' => null,
+            'updated_at' => null,
+        ];
     }
 }

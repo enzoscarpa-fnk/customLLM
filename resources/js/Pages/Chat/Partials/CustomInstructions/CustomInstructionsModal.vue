@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useForm, router, usePage } from '@inertiajs/vue3'
 import AboutYouSection from './AboutYouSection.vue'
 import BehaviorSection from './BehaviorSection.vue'
 import CommandsSection from './CommandsSection.vue'
+import { route } from 'ziggy-js';
 
 const props = defineProps({
     show: Boolean,
@@ -12,13 +13,13 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 
-const userInstructionsData = ref(props.userInstructions || {})
+const userInstructionsData = ref({})
 
 const form = useForm({
-    about_you: userInstructionsData.value?.about_you || '',
-    behavior: userInstructionsData.value?.behavior || '',
-    custom_commands: userInstructionsData.value?.custom_commands || [],
-    enabled: userInstructionsData.value?.enabled ?? true
+    about_you: '',
+    behavior: '',
+    custom_commands: [],
+    enabled: true
 })
 
 const activeTab = ref('about')
@@ -29,6 +30,40 @@ const tabs = [
     { id: 'commands', label: 'Commands', icon: '⚡' }
 ]
 
+// Initialize data from props
+const initializeData = () => {
+    console.log('=== CustomInstructionsModal initializeData ===')
+    console.log('Props userInstructions:', props.userInstructions)
+
+    const instructions = props.userInstructions || {}
+
+    userInstructionsData.value = {
+        about_you: instructions.about_you || '',
+        behavior: instructions.behavior || '',
+        custom_commands: instructions.custom_commands || [],
+        enabled: instructions.enabled !== undefined ? instructions.enabled : true
+    }
+
+    // Update form with existing data
+    form.about_you = userInstructionsData.value.about_you
+    form.behavior = userInstructionsData.value.behavior
+    form.custom_commands = userInstructionsData.value.custom_commands
+    form.enabled = userInstructionsData.value.enabled
+
+    console.log('Initialized userInstructionsData:', userInstructionsData.value)
+    console.log('Form data:', {
+        about_you: form.about_you,
+        behavior: form.behavior,
+        custom_commands: form.custom_commands,
+        enabled: form.enabled
+    })
+    console.log('===============================================')
+}
+
+onMounted(() => {
+    initializeData()
+})
+
 const validateCommands = () => {
     const commandNames = form.custom_commands.map(cmd => cmd.name)
     const uniqueNames = new Set(commandNames)
@@ -37,6 +72,7 @@ const validateCommands = () => {
 
 const save = () => {
     if (!validateCommands()) {
+        alert('Duplicate command names are not allowed.')
         return
     }
 
@@ -59,7 +95,8 @@ const toggleEnabled = async () => {
         }, {
             preserveState: true,
             onSuccess: (page) => {
-                userInstructionsData.value = page.props.userInstructions
+                console.log('Instructions toggled, updated data:', page.props.userInstructions)
+                userInstructionsData.value = page.props.userInstructions || {}
                 emit('saved')
             }
         })
@@ -73,13 +110,24 @@ const closeModal = () => {
 }
 
 const handleDataUpdated = (newInstructions) => {
-    userInstructionsData.value = newInstructions
+    console.log('=== handleDataUpdated ===')
+    console.log('New instructions received:', newInstructions)
 
-    // Update form data
-    form.about_you = newInstructions?.about_you || ''
-    form.behavior = newInstructions?.behavior || ''
-    form.custom_commands = newInstructions?.custom_commands || []
-    form.enabled = newInstructions?.enabled ?? true
+    userInstructionsData.value = newInstructions || {}
+
+    // Update form data to reflect changes
+    form.about_you = userInstructionsData.value.about_you || ''
+    form.behavior = userInstructionsData.value.behavior || ''
+    form.custom_commands = userInstructionsData.value.custom_commands || []
+    form.enabled = userInstructionsData.value.enabled !== undefined ? userInstructionsData.value.enabled : true
+
+    console.log('Updated form data:', {
+        about_you: form.about_you,
+        behavior: form.behavior,
+        custom_commands: form.custom_commands,
+        enabled: form.enabled
+    })
+    console.log('========================')
 
     emit('saved')
 }
@@ -87,26 +135,23 @@ const handleDataUpdated = (newInstructions) => {
 // Watch for show prop changes to reset form
 watch(() => props.show, (newShow) => {
     if (newShow) {
-        userInstructionsData.value = props.userInstructions || {}
-        form.about_you = userInstructionsData.value?.about_you || ''
-        form.behavior = userInstructionsData.value?.behavior || ''
-        form.custom_commands = userInstructionsData.value?.custom_commands || []
-        form.enabled = userInstructionsData.value?.enabled ?? true
-
-        console.log('Modal opened with data:', userInstructionsData.value)
+        console.log('Modal opened, reinitializing data...')
+        initializeData()
     }
 })
 
 // Watch for userInstructions prop changes
 watch(() => props.userInstructions, (newInstructions) => {
+    console.log('UserInstructions prop changed:', newInstructions)
     if (newInstructions) {
-        userInstructionsData.value = newInstructions
+        initializeData()
     }
 }, { deep: true })
 
 // Watch for enabled toggle
 watch(() => form.enabled, (newValue, oldValue) => {
     if (oldValue !== undefined && newValue !== oldValue) {
+        console.log('Enabled toggled:', newValue)
         toggleEnabled()
     }
 })
@@ -146,6 +191,15 @@ watch(() => form.enabled, (newValue, oldValue) => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
+                </div>
+
+                <!-- Debug Info (remove in production) -->
+                <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs mt-4">
+                    <strong>Debug:</strong>
+                    About You: "{{ userInstructionsData.about_you?.substring(0, 50) }}{{ userInstructionsData.about_you?.length > 50 ? '...' : '' }}"
+                    <br>Behavior: "{{ userInstructionsData.behavior?.substring(0, 50) }}{{ userInstructionsData.behavior?.length > 50 ? '...' : '' }}"
+                    <br>Commands: {{ userInstructionsData.custom_commands?.length || 0 }} commands
+                    <br>Enabled: {{ userInstructionsData.enabled }}
                 </div>
 
                 <!-- Enable/Disable Toggle -->

@@ -14,9 +14,11 @@ const isLoading = ref(false)
 
 const existingCommands = ref(props.existingData?.custom_commands || [])
 
+// Watch for changes in existingData prop
 watch(() => props.existingData?.custom_commands, (newValue) => {
+    console.log('CommandsSection - existingData.custom_commands changed:', newValue)
     existingCommands.value = newValue || []
-}, { deep: true })
+}, { deep: true, immediate: true })
 
 const newCommand = ref({
     name: '',
@@ -105,6 +107,7 @@ const removeExistingCommand = async (command) => {
             data: { command_name: command.name },
             preserveState: true,
             onSuccess: (page) => {
+                console.log('Command deleted successfully, updated instructions:', page.props.userInstructions)
                 emit('dataUpdated', page.props.userInstructions)
             },
             onError: (errors) => {
@@ -118,6 +121,7 @@ const removeExistingCommand = async (command) => {
     }
 }
 
+// Fixed saveCommand method - properly merge instead of overwrite
 const saveCommand = async (command) => {
     if (!command.name.startsWith('/') || !command.description.trim() || !command.response.trim()) {
         return
@@ -126,21 +130,27 @@ const saveCommand = async (command) => {
     isLoading.value = true
 
     try {
-        const updatedCommands = [...existingCommands.value]
-        const existingIndex = updatedCommands.findIndex(cmd => cmd.name === command.name)
+        // Get current commands and properly merge
+        const currentCommands = [...(existingCommands.value || [])]
+        const existingIndex = currentCommands.findIndex(cmd => cmd.name === command.name)
 
         if (existingIndex !== -1) {
-            updatedCommands[existingIndex] = command
+            // Update existing command
+            currentCommands[existingIndex] = { ...command }
         } else {
-            updatedCommands.push(command)
+            // Add new command
+            currentCommands.push({ ...command })
         }
+
+        console.log('Saving commands:', currentCommands)
 
         router.post(route('instructions.update'), {
             type: 'custom_commands',
-            data: updatedCommands
+            data: currentCommands
         }, {
             preserveState: true,
             onSuccess: (page) => {
+                console.log('Command saved successfully, updated instructions:', page.props.userInstructions)
                 emit('dataUpdated', page.props.userInstructions)
                 resetNewCommand()
             },
@@ -193,6 +203,12 @@ const clearAllCommands = async () => {
             <p class="mt-1 text-sm text-gray-600">
                 Create custom commands to quickly access specific types of responses or perform common tasks.
             </p>
+        </div>
+
+        <!-- Debug Info (remove in production) -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded p-2 text-xs">
+            <strong>Debug:</strong> Existing commands count: {{ existingCommands.length }}
+            <br>Commands: {{ existingCommands.map(c => c.name).join(', ') }}
         </div>
 
         <!-- Existing Commands -->
@@ -343,7 +359,7 @@ const clearAllCommands = async () => {
                     class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <span v-if="isLoading">Saving...</span>
-                    <span v-else>Save Command</span>
+                    <span v-else>{{ newCommand.name && existingCommands.find(c => c.name === newCommand.name) ? 'Update Command' : 'Add Command' }}</span>
                 </button>
             </div>
         </div>

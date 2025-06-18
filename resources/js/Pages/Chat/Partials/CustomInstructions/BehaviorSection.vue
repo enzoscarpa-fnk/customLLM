@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -13,7 +13,7 @@ const behavior = ref(props.modelValue || '')
 const isEditing = ref(false)
 const isLoading = ref(false)
 
-const existingBehavior = ref(props.existingData?.behavior || '')
+const existingBehavior = ref('')
 
 const presets = [
     {
@@ -57,7 +57,15 @@ const customOptions = [
     }
 ]
 
-const route = usePage().props.route
+// Initialize existing data
+const initializeExistingData = () => {
+    console.log('BehaviorSection - initializeExistingData:', props.existingData)
+    existingBehavior.value = props.existingData?.behavior || ''
+}
+
+onMounted(() => {
+    initializeExistingData()
+})
 
 watch(behavior, (newValue) => {
     emit('update:modelValue', newValue)
@@ -67,9 +75,10 @@ watch(() => props.modelValue, (newValue) => {
     behavior.value = newValue || ''
 })
 
-watch(() => props.existingData?.behavior, (newValue) => {
-    existingBehavior.value = newValue || ''
-})
+watch(() => props.existingData, (newValue) => {
+    console.log('BehaviorSection - existingData prop changed:', newValue)
+    initializeExistingData()
+}, { deep: true })
 
 const applyPreset = (preset) => {
     if (behavior.value) {
@@ -108,6 +117,7 @@ const saveChanges = async () => {
         }, {
             preserveState: true,
             onSuccess: (page) => {
+                console.log('Behavior saved successfully, updated instructions:', page.props.userInstructions)
                 existingBehavior.value = behavior.value
                 isEditing.value = false
                 emit('dataUpdated', page.props.userInstructions)
@@ -135,6 +145,7 @@ const deleteExisting = async () => {
             data: { type: 'behavior' },
             preserveState: true,
             onSuccess: (page) => {
+                console.log('Behavior deleted successfully, updated instructions:', page.props.userInstructions)
                 existingBehavior.value = ''
                 behavior.value = ''
                 isEditing.value = false
@@ -168,6 +179,13 @@ const cancelEdit = () => {
             <p class="mt-1 text-sm text-gray-600">
                 Define how you want the assistant to interact with you. This includes tone, response format, and explanation style.
             </p>
+        </div>
+
+        <!-- Debug Info (remove in production) -->
+        <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs">
+            <strong>Debug:</strong> Existing Behavior: "{{ existingBehavior?.substring(0, 100) }}{{ existingBehavior?.length > 100 ? '...' : '' }}"
+            <br>Current input: "{{ behavior?.substring(0, 100) }}{{ behavior?.length > 100 ? '...' : '' }}"
+            <br>Is editing: {{ isEditing }}
         </div>
 
         <!-- Current Behavior Section -->

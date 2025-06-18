@@ -13,7 +13,7 @@ const aboutYou = ref(props.modelValue || '')
 const isEditing = ref(false)
 const isLoading = ref(false)
 
-const existingAboutYou = ref(props.existingData?.about_you || '')
+const existingAboutYou = ref('')
 
 const examples = [
     "I'm an entrepreneur in the green technology sector, looking to innovate in renewable energy.",
@@ -29,6 +29,18 @@ const suggestions = [
     "Include your preferred communication style and learning preferences"
 ]
 
+const route = usePage().props.route;
+
+// Initialize existing data
+const initializeExistingData = () => {
+    console.log('AboutYouSection - initializeExistingData:', props.existingData)
+    existingAboutYou.value = props.existingData?.about_you || ''
+}
+
+onMounted(() => {
+    initializeExistingData()
+})
+
 watch(aboutYou, (newValue) => {
     emit('update:modelValue', newValue)
 })
@@ -37,9 +49,10 @@ watch(() => props.modelValue, (newValue) => {
     aboutYou.value = newValue || ''
 })
 
-watch(() => props.existingData?.about_you, (newValue) => {
-    existingAboutYou.value = newValue || ''
-})
+watch(() => props.existingData, (newValue) => {
+    console.log('AboutYouSection - existingData prop changed:', newValue)
+    initializeExistingData()
+}, { deep: true })
 
 const insertExample = (example) => {
     if (aboutYou.value) {
@@ -71,6 +84,7 @@ const saveChanges = async () => {
         }, {
             preserveState: true,
             onSuccess: (page) => {
+                console.log('AboutYou saved successfully, updated instructions:', page.props.userInstructions)
                 existingAboutYou.value = aboutYou.value
                 isEditing.value = false
                 emit('dataUpdated', page.props.userInstructions)
@@ -98,6 +112,7 @@ const deleteExisting = async () => {
             data: { type: 'about_you' },
             preserveState: true,
             onSuccess: (page) => {
+                console.log('AboutYou deleted successfully, updated instructions:', page.props.userInstructions)
                 existingAboutYou.value = ''
                 aboutYou.value = ''
                 isEditing.value = false
@@ -131,6 +146,13 @@ const cancelEdit = () => {
             <p class="mt-1 text-sm text-gray-600">
                 Tell the assistant about yourself, your interests, and your expertise. This helps the AI provide more relevant and personalized responses.
             </p>
+        </div>
+
+        <!-- Debug Info (remove in production) -->
+        <div class="bg-green-50 border border-green-200 rounded p-2 text-xs">
+            <strong>Debug:</strong> Existing About You: "{{ existingAboutYou?.substring(0, 100) }}{{ existingAboutYou?.length > 100 ? '...' : '' }}"
+            <br>Current input: "{{ aboutYou?.substring(0, 100) }}{{ aboutYou?.length > 100 ? '...' : '' }}"
+            <br>Is editing: {{ isEditing }}
         </div>
 
         <!-- Current Description Section -->

@@ -35,120 +35,21 @@ class ConversationController extends Controller
             $messages = $conversation->messages()->get();
         }
 
+        // Get user instructions with detailed logging
+        $userInstructions = $user->getInstructionsOrDefault();
+
+        // Debug logging
+        \Log::info('ConversationController index - User ID:', ['user_id' => $user->id]);
+        \Log::info('ConversationController index - Raw instructions from DB:', ['instructions' => $user->instructions]);
+        \Log::info('ConversationController index - Processed userInstructions:', ['userInstructions' => $userInstructions]);
+
         return Inertia::render('Chat/Index', [
             'conversations' => $conversations,
             'activeConversation' => $activeConversation,
             'messages' => $messages,
             'models' => $models,
             'userPreferredModel' => $user->preferred_model,
-            'userInstructions' => $user->getInstructionsOrDefault(),
-        ]);
-    }
-
-    /**
-     * Store or update user instructions
-     */
-    public function storeInstructions(Request $request)
-    {
-        $request->validate([
-            'about_you' => 'nullable|string|max:2000',
-            'behavior' => 'nullable|string|max:2000',
-            'custom_commands' => 'nullable|array',
-            'custom_commands.*.name' => 'required|string|max:50',
-            'custom_commands.*.description' => 'required|string|max:200',
-            'custom_commands.*.response' => 'required|string|max:1000',
-            'enabled' => 'boolean'
-        ]);
-
-        $user = auth()->user();
-
-        $instructions = [
-            'about_you' => $request->about_you,
-            'behavior' => $request->behavior,
-            'custom_commands' => $request->custom_commands ?? [],
-            'enabled' => $request->enabled ?? true
-        ];
-
-        $user->updateInstructions($instructions);
-
-        return redirect()->back()->with('message', 'Instructions updated successfully');
-    }
-
-    /**
-     * Update specific instruction type
-     */
-    public function updateInstruction(Request $request)
-    {
-        $request->validate([
-            'type' => 'required|in:about_you,behavior,custom_commands',
-            'data' => 'required'
-        ]);
-
-        $user = auth()->user();
-        $currentInstructions = $user->getInstructionsOrDefault();
-
-        $currentInstructions[$request->type] = $request->data;
-
-        $user->updateInstructions($currentInstructions);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Instruction updated successfully',
-            'instructions' => $user->getInstructionsOrDefault()
-        ]);
-    }
-
-    /**
-     * Delete specific instruction type
-     */
-    public function deleteInstruction(Request $request)
-    {
-        $request->validate([
-            'type' => 'required|in:about_you,behavior,custom_commands'
-        ]);
-
-        $user = auth()->user();
-        $currentInstructions = $user->getInstructionsOrDefault();
-
-        if ($request->type === 'custom_commands') {
-            $currentInstructions[$request->type] = [];
-        } else {
-            $currentInstructions[$request->type] = '';
-        }
-
-        $user->updateInstructions($currentInstructions);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Instruction deleted successfully',
-            'instructions' => $user->getInstructionsOrDefault()
-        ]);
-    }
-
-    /**
-     * Delete specific custom command
-     */
-    public function deleteCustomCommand(Request $request)
-    {
-        $request->validate([
-            'command_name' => 'required|string'
-        ]);
-
-        $user = auth()->user();
-        $currentInstructions = $user->getInstructionsOrDefault();
-
-        $commands = $currentInstructions['custom_commands'] ?? [];
-        $commands = array_filter($commands, function($command) use ($request) {
-            return $command['name'] !== $request->command_name;
-        });
-
-        $currentInstructions['custom_commands'] = array_values($commands);
-        $user->updateInstructions($currentInstructions);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Command deleted successfully',
-            'instructions' => $user->getInstructionsOrDefault()
+            'userInstructions' => $userInstructions,
         ]);
     }
 
@@ -177,7 +78,7 @@ class ConversationController extends Controller
         // Process message for custom commands and instructions
         $processedMessage = $this->processUserMessage($request->message, $user);
 
-        // Add user message
+        // Add user message (store original message, not processed)
         $userMessage = $conversation->messages()->create([
             'content' => $request->message,
             'role' => 'user',
@@ -263,7 +164,7 @@ class ConversationController extends Controller
         // Process message for custom commands
         $processedMessage = $this->processUserMessage($request->message, $user);
 
-        // Add user message
+        // Add user message (store original message, not processed)
         $conversation->messages()->create([
             'content' => $request->message,
             'role' => 'user',
@@ -275,12 +176,14 @@ class ConversationController extends Controller
             $conversationMessages = $conversation->messages()
                 ->where('role', '!=', 'system')
                 ->get()
-                ->map(fn($msg) => [
-                    'role' => $msg->role,
-                    'content' => $msg->role === 'user' && $msg->content === $request->message
-                        ? $processedMessage
-                        : $msg->content
-                ])
+                ->map(function($msg) use ($request, $processedMessage) {
+                    return [
+                        'role' => $msg->role,
+                        'content' => $msg->role === 'user' && $msg->content === $request->message
+                            ? $processedMessage  // Use processed message for the current user message
+                            : $msg->content
+                    ];
+                })
                 ->toArray();
 
             $messages = $this->buildMessagesWithInstructions($user, $conversationMessages);
@@ -325,21 +228,48 @@ class ConversationController extends Controller
      */
     private function processUserMessage(string $message, $user): string
     {
-        $userInstructions = $user->getInstructionsOrDefault();
+        $userInstructions = $user->instructions;
 
-        if (!$userInstructions || !$userInstructions['enabled']) {
+        if (!$userInstructions || !$userInstructions->enabled) {
             return $message;
         }
 
-        $customCommands = $userInstructions['custom_commands'] ?? [];
+        $customCommands = $userInstructions->custom_commands ?? [];
+
+        // Log for debugging
+        \Log::info('Processing user message for commands:', [
+            'original_message' => $message,
+            'available_commands' => array_column($customCommands, 'name')
+        ]);
 
         foreach ($customCommands as $command) {
-            if (str_starts_with(trim($message), $command['name'])) {
-                $commandParams = trim(substr($message, strlen($command['name'])));
-                return $command['response'] . ($commandParams ? "\n\nUser request: " . $commandParams : "");
+            $commandName = $command['name'];
+            $commandResponse = $command['response'];
+
+            // Check if message starts with the command
+            if (str_starts_with(trim($message), $commandName)) {
+                // Extract any parameters after the command
+                $commandParams = trim(substr($message, strlen($commandName)));
+
+                // Build the processed message with the command response
+                $processedMessage = $commandResponse;
+
+                // If there are parameters, add them as additional context
+                if (!empty($commandParams)) {
+                    $processedMessage .= "\n\nAdditional context: " . $commandParams;
+                }
+
+                \Log::info('Command matched and processed:', [
+                    'command' => $commandName,
+                    'original_message' => $message,
+                    'processed_message' => $processedMessage
+                ]);
+
+                return $processedMessage;
             }
         }
 
+        // No command matched, return original message
         return $message;
     }
 
@@ -348,21 +278,21 @@ class ConversationController extends Controller
      */
     private function buildMessagesWithInstructions($user, array $messages): array
     {
-        $userInstructions = $user->getInstructionsOrDefault();
+        $userInstructions = $user->instructions;
 
-        if (!$userInstructions || !$userInstructions['enabled']) {
+        if (!$userInstructions || !$userInstructions->enabled) {
             return $messages;
         }
 
         $systemMessages = [];
         $systemContent = [];
 
-        if (!empty($userInstructions['about_you'])) {
-            $systemContent[] = "About the user: " . $userInstructions['about_you'];
+        if (!empty($userInstructions->about_you)) {
+            $systemContent[] = "About the user: " . $userInstructions->about_you;
         }
 
-        if (!empty($userInstructions['behavior'])) {
-            $systemContent[] = "Behavior instructions: " . $userInstructions['behavior'];
+        if (!empty($userInstructions->behavior)) {
+            $systemContent[] = "Behavior instructions: " . $userInstructions->behavior;
         }
 
         if (!empty($systemContent)) {
