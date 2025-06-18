@@ -1,5 +1,4 @@
 <script setup>
-import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -8,9 +7,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['selectConversation', 'openInstructions'])
-
-const showNewChatForm = ref(false)
-const newChatMessage = ref('')
 
 const selectConversation = (conversation) => {
     emit('selectConversation', conversation)
@@ -23,27 +19,6 @@ const openInstructions = () => {
     emit('openInstructions')
 }
 
-const startNewChat = () => {
-    showNewChatForm.value = true
-    setTimeout(() => {
-        document.getElementById('new-chat-input')?.focus()
-    }, 100)
-}
-
-const submitNewChat = () => {
-    if (newChatMessage.value.trim()) {
-        router.post('/chat', {
-            message: newChatMessage.value,
-            model: 'gpt-3.5-turbo' // Default model
-        })
-    }
-}
-
-const cancelNewChat = () => {
-    showNewChatForm.value = false
-    newChatMessage.value = ''
-}
-
 const deleteConversation = (conversation, event) => {
     event.stopPropagation()
 
@@ -51,7 +26,6 @@ const deleteConversation = (conversation, event) => {
         router.delete(`/chat/${conversation.id}`, {
             preserveState: false, // This will refresh the page data
             onSuccess: () => {
-                // Optionally emit an event to parent to update the conversations list
                 console.log('Conversation deleted successfully')
             },
             onError: (errors) => {
@@ -69,15 +43,6 @@ const deleteConversation = (conversation, event) => {
         <div class="p-4 border-b border-gray-200 bg-white">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-lg font-semibold text-gray-900">Conversations</h2>
-                <button
-                    @click="startNewChat"
-                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                    title="New conversation"
-                >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                </button>
             </div>
 
             <!-- Settings Button -->
@@ -91,35 +56,6 @@ const deleteConversation = (conversation, event) => {
                 </svg>
                 Custom Instructions
             </button>
-        </div>
-
-        <!-- New Chat Form -->
-        <div v-if="showNewChatForm" class="p-4 bg-blue-50 border-b border-blue-200">
-            <form @submit.prevent="submitNewChat" class="space-y-3">
-                <textarea
-                    id="new-chat-input"
-                    v-model="newChatMessage"
-                    rows="3"
-                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                    placeholder="Start a new conversation..."
-                    required
-                ></textarea>
-                <div class="flex space-x-2">
-                    <button
-                        type="submit"
-                        class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                        Start Chat
-                    </button>
-                    <button
-                        type="button"
-                        @click="cancelNewChat"
-                        class="px-3 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </form>
         </div>
 
         <!-- Conversations List -->

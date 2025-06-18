@@ -27,8 +27,6 @@ const props = defineProps({
     userInstructions: Object
 })
 
-
-
 onMounted(() => {
     conversations.value = props.conversations
     activeConversation.value = props.activeConversation
@@ -37,6 +35,9 @@ onMounted(() => {
     // Debug: Log the userInstructions prop
     console.log('=== Index.vue onMounted ===')
     console.log('userInstructions prop:', props.userInstructions)
+    console.log('conversations:', props.conversations?.length || 0)
+    console.log('activeConversation:', props.activeConversation?.id || 'none')
+    console.log('messages:', props.messages?.length || 0)
     console.log('==========================')
 
     // Initialize selectedModel with user preference or active conversation model

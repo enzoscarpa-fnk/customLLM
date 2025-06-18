@@ -78,7 +78,7 @@ class ConversationController extends Controller
         // Process message for custom commands and instructions
         $processedMessage = $this->processUserMessage($request->message, $user);
 
-        // Add user message (store original message, not processed)
+        // Add user message
         $userMessage = $conversation->messages()->create([
             'content' => $request->message,
             'role' => 'user',
@@ -164,7 +164,7 @@ class ConversationController extends Controller
         // Process message for custom commands
         $processedMessage = $this->processUserMessage($request->message, $user);
 
-        // Add user message (store original message, not processed)
+        // Add user message
         $conversation->messages()->create([
             'content' => $request->message,
             'role' => 'user',
@@ -176,14 +176,12 @@ class ConversationController extends Controller
             $conversationMessages = $conversation->messages()
                 ->where('role', '!=', 'system')
                 ->get()
-                ->map(function($msg) use ($request, $processedMessage) {
-                    return [
-                        'role' => $msg->role,
-                        'content' => $msg->role === 'user' && $msg->content === $request->message
-                            ? $processedMessage  // Use processed message for the current user message
-                            : $msg->content
-                    ];
-                })
+                ->map(fn($msg) => [
+                    'role' => $msg->role,
+                    'content' => $msg->role === 'user' && $msg->content === $request->message
+                        ? $processedMessage
+                        : $msg->content
+                ])
                 ->toArray();
 
             $messages = $this->buildMessagesWithInstructions($user, $conversationMessages);
@@ -236,40 +234,13 @@ class ConversationController extends Controller
 
         $customCommands = $userInstructions->custom_commands ?? [];
 
-        // Log for debugging
-        \Log::info('Processing user message for commands:', [
-            'original_message' => $message,
-            'available_commands' => array_column($customCommands, 'name')
-        ]);
-
         foreach ($customCommands as $command) {
-            $commandName = $command['name'];
-            $commandResponse = $command['response'];
-
-            // Check if message starts with the command
-            if (str_starts_with(trim($message), $commandName)) {
-                // Extract any parameters after the command
-                $commandParams = trim(substr($message, strlen($commandName)));
-
-                // Build the processed message with the command response
-                $processedMessage = $commandResponse;
-
-                // If there are parameters, add them as additional context
-                if (!empty($commandParams)) {
-                    $processedMessage .= "\n\nAdditional context: " . $commandParams;
-                }
-
-                \Log::info('Command matched and processed:', [
-                    'command' => $commandName,
-                    'original_message' => $message,
-                    'processed_message' => $processedMessage
-                ]);
-
-                return $processedMessage;
+            if (str_starts_with(trim($message), $command['name'])) {
+                $commandParams = trim(substr($message, strlen($command['name'])));
+                return $command['response'] . ($commandParams ? "\n\nUser request: " . $commandParams : "");
             }
         }
 
-        // No command matched, return original message
         return $message;
     }
 
