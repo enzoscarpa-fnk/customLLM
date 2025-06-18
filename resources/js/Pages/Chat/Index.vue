@@ -40,26 +40,6 @@ const handleNewConversation = () => {
     })
 }
 
-onMounted(() => {
-    conversations.value = props.conversations
-    activeConversation.value = props.activeConversation
-    messages.value = props.messages
-
-    // Debug: Log the userInstructions prop
-    console.log('=== Index.vue onMounted ===')
-    console.log('userInstructions prop:', props.userInstructions)
-    console.log('conversations:', props.conversations?.length || 0)
-    console.log('activeConversation:', props.activeConversation?.id || 'none')
-    console.log('messages:', props.messages?.length || 0)
-    console.log('==========================')
-
-    // Initialize selectedModel with user preference or active conversation model
-    const initialModel = props.activeConversation?.model_name || props.userPreferredModel
-    if (initialModel) {
-        selectedModel.value = initialModel
-    }
-})
-
 // Watch for changes in activeConversation to update selectedModel
 watch(() => props.activeConversation, (newConversation) => {
     if (newConversation && newConversation.model_name) {
@@ -79,6 +59,28 @@ const handleInstructionsSaved = () => {
     console.log('Instructions saved, refreshing page...')
     window.location.reload()
 }
+
+onMounted(() => {
+    conversations.value = props.conversations
+    activeConversation.value = props.activeConversation
+    messages.value = props.messages
+
+    let initialModel = null
+
+    if (props.activeConversation?.model_name) {
+        initialModel = props.activeConversation.model_name
+    } else if (props.userPreferredModel) {
+        initialModel = props.userPreferredModel
+    } else if (props.models && props.models.length > 0) {
+        initialModel = props.models[0].id
+    }
+
+    if (initialModel) {
+        selectedModel.value = initialModel
+    }
+
+    console.log('User preferred model:', props.userPreferredModel)
+})
 </script>
 
 <template>

@@ -16,15 +16,15 @@ const { createNewConversation, sendMessage, isLoading } = useChat()
 
 const textareaRef = ref(null)
 
-const form = useForm({
-    message: '',
-    model: props.selectedModel || ''
-})
-
 defineExpose({
     focusTextarea: () => {
         focusTextarea()
     }
+})
+
+const form = useForm({
+    message: '',
+    model: ''
 })
 
 // Watch for changes in selectedModel prop and update form
@@ -34,9 +34,13 @@ watch(() => props.selectedModel, (newModel) => {
     }
 }, { immediate: true })
 
-onMounted(() => {
-    focusTextarea()
-})
+watch(() => props.models, (newModels) => {
+    if (newModels && newModels.length > 0 && !form.model && !props.selectedModel) {
+        const defaultModel = newModels[0].id
+        form.model = defaultModel
+        emit('update-model', defaultModel)
+    }
+}, { immediate: true })
 
 watch(() => isLoading.value, (newLoading, oldLoading) => {
     if (oldLoading && !newLoading) {
@@ -97,6 +101,17 @@ const handleKeydown = (event) => {
         submit()
     }
 }
+
+onMounted(() => {
+    const initialModel = props.selectedModel || props.models?.[0]?.id || ''
+    if (initialModel) {
+        form.model = initialModel
+        if (!props.selectedModel && initialModel) {
+            emit('update-model', initialModel)
+        }
+    }
+    focusTextarea()
+})
 </script>
 
 <template>

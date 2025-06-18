@@ -32,9 +32,6 @@ const tabs = [
 
 // Initialize data from props
 const initializeData = () => {
-    console.log('=== CustomInstructionsModal initializeData ===')
-    console.log('Props userInstructions:', props.userInstructions)
-
     const instructions = props.userInstructions || {}
 
     userInstructionsData.value = {
@@ -49,15 +46,6 @@ const initializeData = () => {
     form.behavior = userInstructionsData.value.behavior
     form.custom_commands = userInstructionsData.value.custom_commands
     form.enabled = userInstructionsData.value.enabled
-
-    console.log('Initialized userInstructionsData:', userInstructionsData.value)
-    console.log('Form data:', {
-        about_you: form.about_you,
-        behavior: form.behavior,
-        custom_commands: form.custom_commands,
-        enabled: form.enabled
-    })
-    console.log('===============================================')
 }
 
 onMounted(() => {
@@ -95,7 +83,6 @@ const toggleEnabled = async () => {
         }, {
             preserveState: true,
             onSuccess: (page) => {
-                console.log('Instructions toggled, updated data:', page.props.userInstructions)
                 userInstructionsData.value = page.props.userInstructions || {}
                 emit('saved')
             }
@@ -110,9 +97,6 @@ const closeModal = () => {
 }
 
 const handleDataUpdated = (newInstructions) => {
-    console.log('=== handleDataUpdated ===')
-    console.log('New instructions received:', newInstructions)
-
     userInstructionsData.value = newInstructions || {}
 
     // Update form data to reflect changes
@@ -121,28 +105,18 @@ const handleDataUpdated = (newInstructions) => {
     form.custom_commands = userInstructionsData.value.custom_commands || []
     form.enabled = userInstructionsData.value.enabled !== undefined ? userInstructionsData.value.enabled : true
 
-    console.log('Updated form data:', {
-        about_you: form.about_you,
-        behavior: form.behavior,
-        custom_commands: form.custom_commands,
-        enabled: form.enabled
-    })
-    console.log('========================')
-
     emit('saved')
 }
 
 // Watch for show prop changes to reset form
 watch(() => props.show, (newShow) => {
     if (newShow) {
-        console.log('Modal opened, reinitializing data...')
         initializeData()
     }
 })
 
 // Watch for userInstructions prop changes
 watch(() => props.userInstructions, (newInstructions) => {
-    console.log('UserInstructions prop changed:', newInstructions)
     if (newInstructions) {
         initializeData()
     }
@@ -151,7 +125,6 @@ watch(() => props.userInstructions, (newInstructions) => {
 // Watch for enabled toggle
 watch(() => form.enabled, (newValue, oldValue) => {
     if (oldValue !== undefined && newValue !== oldValue) {
-        console.log('Enabled toggled:', newValue)
         toggleEnabled()
     }
 })
