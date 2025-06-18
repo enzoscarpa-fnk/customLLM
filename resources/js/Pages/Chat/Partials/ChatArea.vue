@@ -18,6 +18,16 @@ const localMessages = ref([...props.messages])
 const isCreatingConversation = ref(false)
 const showInstructionsModal = ref(false)
 
+const messageInputRef = ref(null)
+
+defineExpose({
+    focusInput: () => {
+        if (messageInputRef.value) {
+            messageInputRef.value.focusTextarea()
+        }
+    }
+})
+
 const hasActiveConversation = computed(() => {
     return props.activeConversation !== null
 })
@@ -123,6 +133,7 @@ watch(() => props.activeConversation, (newConversation) => {
         <!-- Message Input -->
         <div class="border-t border-gray-200 p-4">
             <MessageInput
+                ref="messageInputRef"
                 :models="models"
                 :selected-model="selectedModel"
                 :conversation-id="activeConversation?.id"

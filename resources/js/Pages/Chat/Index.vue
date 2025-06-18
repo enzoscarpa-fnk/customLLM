@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Sidebar from './Partials/Sidebar.vue'
 import ChatArea from './Partials/ChatArea.vue'
@@ -26,6 +26,19 @@ const props = defineProps({
     userPreferredModel: String,
     userInstructions: Object
 })
+
+const chatAreaRef = ref(null)
+
+const handleNewConversation = () => {
+    activeConversation.value = null
+    messages.value = []
+
+    nextTick(() => {
+        if (chatAreaRef.value) {
+            chatAreaRef.value.focusInput()
+        }
+    })
+}
 
 onMounted(() => {
     conversations.value = props.conversations
@@ -63,7 +76,6 @@ const closeInstructionsModal = () => {
 }
 
 const handleInstructionsSaved = () => {
-    // Refresh the page to get updated instructions
     console.log('Instructions saved, refreshing page...')
     window.location.reload()
 }
@@ -83,12 +95,14 @@ const handleInstructionsSaved = () => {
                                 :active-conversation="activeConversation"
                                 @select-conversation="setActiveConversation"
                                 @open-instructions="openInstructionsModal"
+                                @new-conversation="handleNewConversation"
                             />
                         </div>
 
                         <!-- Chat Area -->
                         <div class="flex-1">
                             <ChatArea
+                                ref="chatAreaRef"
                                 :active-conversation="activeConversation"
                                 :messages="messages"
                                 :models="models"

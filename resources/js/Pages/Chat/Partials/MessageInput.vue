@@ -21,6 +21,12 @@ const form = useForm({
     model: props.selectedModel || ''
 })
 
+defineExpose({
+    focusTextarea: () => {
+        focusTextarea()
+    }
+})
+
 // Watch for changes in selectedModel prop and update form
 watch(() => props.selectedModel, (newModel) => {
     if (newModel && form.model !== newModel) {
