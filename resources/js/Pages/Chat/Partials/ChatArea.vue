@@ -2,18 +2,31 @@
 import { ref, computed, watch } from 'vue'
 import MessageList from './MessageList.vue'
 import MessageInput from './MessageInput.vue'
+import CustomInstructionsModal from './CustomInstructions/CustomInstructionsModal.vue'
 
 const props = defineProps({
     activeConversation: Object,
     messages: Array,
     models: Array,
-    selectedModel: String
+    selectedModel: String,
+    userInstructions: Object
 })
 
 const emit = defineEmits(['update-model'])
 
 const localMessages = ref([...props.messages])
 const isCreatingConversation = ref(false)
+const showInstructionsModal = ref(false)
+
+const messageInputRef = ref(null)
+
+defineExpose({
+    focusInput: () => {
+        if (messageInputRef.value) {
+            messageInputRef.value.focusTextarea()
+        }
+    }
+})
 
 const hasActiveConversation = computed(() => {
     return props.activeConversation !== null
@@ -36,6 +49,18 @@ const handleMessageSent = (message) => {
         ...message,
         id: 'temp-' + Date.now()
     })
+}
+
+const openInstructions = () => {
+    showInstructionsModal.value = true
+}
+
+const closeInstructions = () => {
+    showInstructionsModal.value = false
+}
+
+const onInstructionsSaved = () => {
+    // What to do when instructions are saved
 }
 
 watch(() => props.messages, (newMessages) => {
@@ -108,12 +133,22 @@ watch(() => props.activeConversation, (newConversation) => {
         <!-- Message Input -->
         <div class="border-t border-gray-200 p-4">
             <MessageInput
+                ref="messageInputRef"
                 :models="models"
                 :selected-model="selectedModel"
                 :conversation-id="activeConversation?.id"
+                :user-instructions="userInstructions"
                 @update-model="updateModel"
                 @message-sent="handleMessageSent"
             />
         </div>
+
+        <!-- Instructions Modal -->
+        <CustomInstructionsModal
+            :show="showInstructionsModal"
+            :user-instructions="userInstructions"
+            @close="closeInstructions"
+            @saved="onInstructionsSaved"
+        />
     </div>
 </template>

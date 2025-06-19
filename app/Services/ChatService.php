@@ -18,6 +18,15 @@ class ChatService
         $this->client = $this->createOpenAIClient();
     }
 
+    private function createOpenAIClient(): \OpenAI\Client
+    {
+        return \OpenAI::factory()
+            ->withApiKey($this->apiKey)
+            ->withBaseUri($this->baseUrl)
+            ->make()
+            ;
+    }
+
     /**
      * @return array<array-key, array{
      *     id: string,
@@ -52,6 +61,30 @@ class ChatService
     }
 
     /**
+     * @return array{role: 'system', content: string}
+     */
+    private function getChatSystemPrompt(): array
+    {
+        $user = auth()->user();
+        $now = now()->locale('fr')->format('l d F Y H:i');
+
+        $basePrompt = "You're a chat assistant. The actual date and time is {$now}. You're used by {$user->name}.";
+
+        $userInstructions = $user->instructions;
+        if ($userInstructions && $userInstructions->enabled) {
+            $customInstructions = $userInstructions->formatted_instructions;
+            if ($customInstructions) {
+                $basePrompt .= "\n\nInstructions personnalisées:\n" . $customInstructions;
+            }
+        }
+
+        return [
+            'role' => 'system',
+            'content' => $basePrompt,
+        ];
+    }
+
+    /**
      * @param array{role: 'user'|'assistant'|'system'|'function', content: string} $messages
      * @param string|null $model
      * @param float $temperature
@@ -72,18 +105,20 @@ class ChatService
                 logger()->info('Default model used:', ['model' => $model]);
             }
 
-            $messages = [$this->getChatSystemPrompt(), ...$messages];
+            $processedMessages = $this->processCustomCommands($messages);
+
+            $finalMessages = [$this->getChatSystemPrompt(), ...$processedMessages];
+
             $response = $this->client->chat()->create([
                 'model' => $model,
-                'messages' => $messages,
+                'messages' => $finalMessages,
                 'temperature' => $temperature,
             ]);
 
             logger()->info('Response received:', ['response' => $response]);
 
-            $content = $response->choices[0]->message->content;
+            return $response->choices[0]->message->content;
 
-            return $content;
         } catch (\Exception $e) {
             logger()->error('Error in sendMessage:', [
                 'message' => $e->getMessage(),
@@ -94,30 +129,41 @@ class ChatService
         }
     }
 
-    private function createOpenAIClient(): \OpenAI\Client
-    {
-        return \OpenAI::factory()
-            ->withApiKey($this->apiKey)
-            ->withBaseUri($this->baseUrl)
-            ->make()
-            ;
-    }
-
-    /**
-     * @return array{role: 'system', content: string}
-     */
-    private function getChatSystemPrompt(): array
+    private function processCustomCommands(array $messages): array
     {
         $user = auth()->user();
-        $userName = optional($user)->name ?? 'Anonymous user';
-        $now = now()->locale('fr')->format('l d F Y H:i');
+        $userInstructions = $user->instructions;
 
-        return [
-            'role' => 'system',
-            'content' => <<<EOT
-                You're a chat assistant. The actual date and time is {$now}.
-                You're used by {$userName}.
-                EOT,
-        ];
+        if (!$userInstructions || !$userInstructions->enabled || !$userInstructions->custom_commands) {
+            return $messages;
+        }
+
+        $commands = collect($userInstructions->custom_commands);
+
+        return collect($messages)->map(function ($message) use ($commands) {
+            if ($message['role'] === 'user') {
+                $content = $message['content'];
+
+                // Chercher des commandes dans le message
+                foreach ($commands as $command) {
+                    if (str_starts_with(trim($content), $command['name'])) {
+                        // Remplacer la commande par sa réponse
+                        $commandText = $command['name'];
+                        $parameters = trim(str_replace($commandText, '', $content));
+
+                        $newContent = $command['response'];
+                        if ($parameters) {
+                            $newContent .= " Parameters: " . $parameters;
+                        }
+
+                        $message['content'] = $newContent;
+                        break;
+                    }
+                }
+            }
+
+            return $message;
+        })->toArray();
     }
+
 }

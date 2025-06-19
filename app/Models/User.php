@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -30,6 +31,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'preferred_model',
     ];
 
     /**
@@ -81,4 +83,40 @@ class User extends Authenticatable
         $this->update(['preferred_model' => $model]);
     }
 
+    public function instructions(): HasOne
+    {
+        return $this->hasOne(UserInstruction::class);
+    }
+
+    public function getInstructionsOrDefault()
+    {
+        // Load the relationship if not already loaded
+        if (!$this->relationLoaded('instructions')) {
+            $this->load('instructions');
+        }
+
+        if ($this->instructions) {
+            return [
+                'id' => $this->instructions->id,
+                'user_id' => $this->instructions->user_id,
+                'about_you' => $this->instructions->about_you ?? '',
+                'behavior' => $this->instructions->behavior ?? '',
+                'custom_commands' => $this->instructions->custom_commands ?? [],
+                'enabled' => $this->instructions->enabled ?? true,
+                'created_at' => $this->instructions->created_at,
+                'updated_at' => $this->instructions->updated_at,
+            ];
+        }
+
+        return [
+            'id' => null,
+            'user_id' => $this->id,
+            'about_you' => '',
+            'behavior' => '',
+            'custom_commands' => [],
+            'enabled' => true,
+            'created_at' => null,
+            'updated_at' => null,
+        ];
+    }
 }

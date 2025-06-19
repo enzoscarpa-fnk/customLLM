@@ -6,7 +6,7 @@ import { useChat } from '@/Composables/useChat'
 const props = defineProps({
     models: Array,
     selectedModel: String,
-    conversationId: Number
+    conversationId: Number,
 })
 
 const emit = defineEmits(['update-model', 'message-sent'])
@@ -15,9 +15,15 @@ const { createNewConversation, sendMessage, isLoading } = useChat()
 
 const textareaRef = ref(null)
 
+defineExpose({
+    focusTextarea: () => {
+        focusTextarea()
+    }
+})
+
 const form = useForm({
     message: '',
-    model: props.selectedModel || ''
+    model: ''
 })
 
 // Watch for changes in selectedModel prop and update form
@@ -27,9 +33,13 @@ watch(() => props.selectedModel, (newModel) => {
     }
 }, { immediate: true })
 
-onMounted(() => {
-    focusTextarea()
-})
+watch(() => props.models, (newModels) => {
+    if (newModels && newModels.length > 0 && !form.model && !props.selectedModel) {
+        const defaultModel = newModels[0].id
+        form.model = defaultModel
+        emit('update-model', defaultModel)
+    }
+}, { immediate: true })
 
 watch(() => isLoading.value, (newLoading, oldLoading) => {
     if (oldLoading && !newLoading) {
@@ -86,13 +96,24 @@ const handleKeydown = (event) => {
         submit()
     }
 }
+
+onMounted(() => {
+    const initialModel = props.selectedModel || props.models?.[0]?.id || ''
+    if (initialModel) {
+        form.model = initialModel
+        if (!props.selectedModel && initialModel) {
+            emit('update-model', initialModel)
+        }
+    }
+    focusTextarea()
+})
 </script>
 
 <template>
     <form @submit.prevent="submit" class="space-y-4">
         <!-- Model Selector -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+        <div class="flex items-end space-x-3">
+            <label class="block text-sm font-medium text-gray-700 mb-2 shrink-0">
                 AI Model
             </label>
             <select
