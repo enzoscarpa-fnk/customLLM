@@ -140,7 +140,6 @@ watch(() => props.activeConversation, (newConversation) => {
                 :user-instructions="userInstructions"
                 @update-model="updateModel"
                 @message-sent="handleMessageSent"
-                @open-instructions="openInstructions"
             />
         </div>
 

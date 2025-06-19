@@ -56,7 +56,6 @@ const closeInstructionsModal = () => {
 }
 
 const handleInstructionsSaved = () => {
-    console.log('Instructions saved, refreshing page...')
     window.location.reload()
 }
 
@@ -78,8 +77,6 @@ onMounted(() => {
     if (initialModel) {
         selectedModel.value = initialModel
     }
-
-    console.log('User preferred model:', props.userPreferredModel)
 })
 </script>
 

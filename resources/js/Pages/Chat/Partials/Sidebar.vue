@@ -30,9 +30,6 @@ const selectConversation = (conversation) => {
 }
 
 const openInstructions = () => {
-    console.log('=== Sidebar openInstructions ===')
-    console.log('Emitting openInstructions event')
-    console.log('===============================')
     emit('openInstructions')
 }
 

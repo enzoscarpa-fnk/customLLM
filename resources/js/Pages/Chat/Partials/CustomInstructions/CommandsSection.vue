@@ -16,7 +16,6 @@ const existingCommands = ref(props.existingData?.custom_commands || [])
 
 // Watch for changes in existingData prop
 watch(() => props.existingData?.custom_commands, (newValue) => {
-    console.log('CommandsSection - existingData.custom_commands changed:', newValue)
     existingCommands.value = newValue || []
 }, { deep: true, immediate: true })
 
@@ -107,7 +106,6 @@ const removeExistingCommand = async (command) => {
             data: { command_name: command.name },
             preserveState: true,
             onSuccess: (page) => {
-                console.log('Command deleted successfully, updated instructions:', page.props.userInstructions)
                 emit('dataUpdated', page.props.userInstructions)
             },
             onError: (errors) => {
@@ -142,15 +140,12 @@ const saveCommand = async (command) => {
             currentCommands.push({ ...command })
         }
 
-        console.log('Saving commands:', currentCommands)
-
         router.post(route('instructions.update'), {
             type: 'custom_commands',
             data: currentCommands
         }, {
             preserveState: true,
             onSuccess: (page) => {
-                console.log('Command saved successfully, updated instructions:', page.props.userInstructions)
                 emit('dataUpdated', page.props.userInstructions)
                 resetNewCommand()
             },
@@ -203,12 +198,6 @@ const clearAllCommands = async () => {
             <p class="mt-1 text-sm text-gray-600">
                 Create custom commands to quickly access specific types of responses or perform common tasks.
             </p>
-        </div>
-
-        <!-- Debug Info (remove in production) -->
-        <div class="bg-yellow-50 border border-yellow-200 rounded p-2 text-xs">
-            <strong>Debug:</strong> Existing commands count: {{ existingCommands.length }}
-            <br>Commands: {{ existingCommands.map(c => c.name).join(', ') }}
         </div>
 
         <!-- Existing Commands -->

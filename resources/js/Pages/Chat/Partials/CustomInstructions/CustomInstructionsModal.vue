@@ -166,15 +166,6 @@ watch(() => form.enabled, (newValue, oldValue) => {
                     </button>
                 </div>
 
-                <!-- Debug Info (remove in production) -->
-                <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs mt-4">
-                    <strong>Debug:</strong>
-                    About You: "{{ userInstructionsData.about_you?.substring(0, 50) }}{{ userInstructionsData.about_you?.length > 50 ? '...' : '' }}"
-                    <br>Behavior: "{{ userInstructionsData.behavior?.substring(0, 50) }}{{ userInstructionsData.behavior?.length > 50 ? '...' : '' }}"
-                    <br>Commands: {{ userInstructionsData.custom_commands?.length || 0 }} commands
-                    <br>Enabled: {{ userInstructionsData.enabled }}
-                </div>
-
                 <!-- Enable/Disable Toggle -->
                 <div class="flex items-center justify-between py-4 border-b border-gray-200">
                     <div>
