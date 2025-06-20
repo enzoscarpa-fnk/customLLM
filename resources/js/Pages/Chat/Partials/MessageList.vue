@@ -4,7 +4,11 @@ import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 
 const props = defineProps({
-    messages: Array
+    messages: Array,
+    isStreaming: {
+        type: Boolean,
+        default: false
+    }
 })
 
 const messagesContainer = ref(null)
@@ -36,7 +40,7 @@ const scrollToBottom = () => {
 }
 
 const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
+    return new Date(dateString).toLocaleTimeString('fr-FR', {
         hour: '2-digit',
         minute: '2-digit'
     })
@@ -92,6 +96,17 @@ onMounted(() => {
                     class="prose prose-sm max-w-none prose-gray prose-pre:bg-gray-200 prose-pre:text-gray-800"
                     v-html="renderMarkdown(message.content)"
                 ></div>
+
+                <!-- Indicateur de streaming -->
+                <div v-if="isStreaming && message.content === ''" class="flex items-center space-x-2 mt-2">
+                    <div class="animate-pulse flex space-x-1">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    </div>
+                    <span class="text-xs text-gray-500">AI is typing...</span>
+                </div>
+
                 <div class="text-xs mt-1 text-left text-gray-500">
                     {{ formatTime(message.created_at) }}
                 </div>

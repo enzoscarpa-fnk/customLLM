@@ -209,6 +209,161 @@ class ConversationController extends Controller
     }
 
     /**
+     * Send message with streaming response
+     */
+    public function addMessageStream(Request $request, Conversation $conversation)
+    {
+        $request->validate([
+            'message' => 'required|string|max:10000',
+            'model' => 'required|string',
+        ]);
+
+        $user = auth()->user();
+
+        // Check ownership
+        if ($conversation->user_id !== $user->id) {
+            abort(403);
+        }
+
+        // Update user's preferred model
+        $user->updatePreferredModel($request->model);
+
+        // Update conversation model if changed
+        if ($conversation->model_name !== $request->model) {
+            $conversation->update(['model_name' => $request->model]);
+        }
+
+        // Process message for custom commands
+        $processedMessage = $this->processUserMessage($request->message, $user);
+
+        // Add user message
+        $conversation->messages()->create([
+            'content' => $request->message,
+            'role' => 'user',
+            'model_name' => $request->model,
+        ]);
+
+        // Get conversation history for context
+        $conversationMessages = $conversation->messages()
+            ->where('role', '!=', 'system')
+            ->get()
+            ->map(fn($msg) => [
+                'role' => $msg->role,
+                'content' => $msg->role === 'user' && $msg->content === $request->message
+                    ? $processedMessage
+                    : $msg->content
+            ])
+            ->toArray();
+
+        $messages = $this->buildMessagesWithInstructions($user, $conversationMessages);
+
+        return response()->stream(function () use ($conversation, $messages, $request) {
+            $fullResponse = '';
+
+            try {
+                $stream = $this->chatService->stream(
+                    messages: $messages,
+                    model: $request->model
+                );
+
+                foreach ($stream as $response) {
+                    $content = $response->choices[0]->delta->content ?? '';
+                    $fullResponse .= $content;
+                    yield $content;
+                }
+
+                // Create assistant message with complete response
+                $conversation->messages()->create([
+                    'content' => $fullResponse,
+                    'role' => 'assistant',
+                    'model_name' => $request->model,
+                ]);
+
+                // Update conversation timestamp
+                $conversation->updateLastMessageTime();
+
+            } catch (\Exception $e) {
+                logger()->error('Streaming error:', ['error' => $e->getMessage()]);
+                yield " " . json_encode(['error' => 'An error occured']) . "\n\n";
+            }
+        })->header('X-Accel-Buffering', 'no');
+    }
+
+    /**
+     * Create new conversation with streaming
+     */
+    public function storeStream(Request $request)
+    {
+        $request->validate([
+            'message' => 'required|string|max:10000',
+            'model' => 'required|string',
+        ]);
+
+        $user = auth()->user();
+
+        // Update user's preferred model
+        $user->updatePreferredModel($request->model);
+
+        // Create new conversation
+        $conversation = $user->conversations()->create([
+            'title' => 'New chat',
+            'model_name' => $request->model,
+            'last_message_at' => now(),
+        ]);
+
+        // Process message for custom commands and instructions
+        $processedMessage = $this->processUserMessage($request->message, $user);
+
+        // Add user message
+        $conversation->messages()->create([
+            'content' => $request->message,
+            'role' => 'user',
+            'model_name' => $request->model,
+        ]);
+
+        $messages = $this->buildMessagesWithInstructions($user, [
+            ['role' => 'user', 'content' => $processedMessage]
+        ]);
+
+        return response()->stream(function () use ($conversation, $messages, $request) {
+            $fullResponse = '';
+
+            try {
+                $stream = $this->chatService->stream(
+                    messages: $messages,
+                    model: $request->model
+                );
+
+                foreach ($stream as $response) {
+                    $content = $response->choices[0]->delta->content ?? '';
+                    $fullResponse .= $content;
+                    yield $content;
+                }
+
+                // Create assistant message
+                $conversation->messages()->create([
+                    'content' => $fullResponse,
+                    'role' => 'assistant',
+                    'model_name' => $request->model,
+                ]);
+
+                // Update conversation timestamp
+                $conversation->updateLastMessageTime();
+
+                // Generate title based on assistant's first message
+                $conversation->generateTitleWithAI();
+
+            } catch (\Exception $e) {
+                // If AI call fails, delete the conversation
+                $conversation->delete();
+                logger()->error('New conversation streaming error:', ['error' => $e->getMessage()]);
+                yield " " . json_encode(['error' => 'An error occured']) . "\n\n";
+            }
+        })->header('X-Accel-Buffering', 'no');
+    }
+
+
+    /**
      * Show specific conversation
      */
     public function show(Conversation $conversation)

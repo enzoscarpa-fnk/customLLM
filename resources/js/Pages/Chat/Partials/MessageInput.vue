@@ -1,17 +1,19 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useForm } from '@inertiajs/vue3'
-import { useChat } from '@/Composables/useChat'
 
 const props = defineProps({
     models: Array,
     selectedModel: String,
     conversationId: Number,
+    userInstructions: Object,
+    isStreaming: {
+        type: Boolean,
+        default: false
+    }
 })
 
 const emit = defineEmits(['update-model', 'message-sent'])
-
-const { createNewConversation, sendMessage, isLoading } = useChat()
 
 const textareaRef = ref(null)
 
@@ -41,8 +43,9 @@ watch(() => props.models, (newModels) => {
     }
 }, { immediate: true })
 
-watch(() => isLoading.value, (newLoading, oldLoading) => {
-    if (oldLoading && !newLoading) {
+// Focus textarea when streaming finishes
+watch(() => props.isStreaming, (newStreaming, oldStreaming) => {
+    if (oldStreaming && !newStreaming) {
         nextTick(() => {
             focusTextarea()
         })
@@ -59,17 +62,21 @@ const isNewConversation = computed(() => {
     return !props.conversationId
 })
 
-const submit = async () => {
-    if (!form.message.trim()) return
+const isDisabled = computed(() => {
+    return props.isStreaming || !form.message.trim()
+})
+
+const submit = () => {
+    if (isDisabled.value) return
 
     const message = form.message
     const model = form.model
 
-    // Emit message immediately to parent for UI update
+    // Emit message immediately to parent for streaming handling
     emit('message-sent', {
-        content: message,
+        message: message,
+        model: model,
         role: 'user',
-        model_name: model,
         created_at: new Date().toISOString()
     })
 
@@ -77,12 +84,6 @@ const submit = async () => {
     emit('update-model', model)
 
     form.reset('message')
-
-    if (isNewConversation.value) {
-        await createNewConversation(message, model)
-    } else {
-        await sendMessage(message, props.conversationId, model)
-    }
 }
 
 const updateModel = (model) => {
@@ -120,7 +121,7 @@ onMounted(() => {
                 v-model="form.model"
                 @change="updateModel(form.model)"
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                :disabled="isLoading"
+                :disabled="isStreaming"
             >
                 <option value="" disabled>Select a model</option>
                 <option
@@ -142,13 +143,13 @@ onMounted(() => {
                 rows="3"
                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-12"
                 placeholder="Type your message..."
-                :disabled="isLoading"
+                :disabled="isStreaming"
             ></textarea>
 
             <!-- Send Button -->
             <button
                 type="submit"
-                :disabled="isLoading || !form.message.trim()"
+                :disabled="isStreaming"
                 class="absolute bottom-2 right-2 inline-flex items-center p-2 bg-blue-600 border border-transparent rounded-md font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <svg v-if="isLoading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -162,12 +163,12 @@ onMounted(() => {
         </div>
 
         <!-- Loading Indicator -->
-        <div v-if="isLoading" class="flex items-center justify-center text-sm text-gray-500">
+        <div v-if="isStreaming" class="flex items-center justify-center text-sm text-gray-500">
             <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Generating response...
+            AI is responding...
         </div>
     </form>
 </template>

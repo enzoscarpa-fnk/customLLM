@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
+import { useStream } from '@laravel/stream-vue'
 import MessageList from './MessageList.vue'
 import MessageInput from './MessageInput.vue'
 import CustomInstructionsModal from './CustomInstructions/CustomInstructionsModal.vue'
@@ -19,6 +20,39 @@ const isCreatingConversation = ref(false)
 const showInstructionsModal = ref(false)
 
 const messageInputRef = ref(null)
+
+const { isStreaming, send: sendStream } = useStream(
+    computed(() =>
+        props.activeConversation
+            ? `/chat/${props.activeConversation.id}/stream`
+            : '/chat/stream'
+    ),
+    {
+        onData: (data) => {
+            // Concatenate chunks
+            const lastMessage = localMessages.value[localMessages.value.length - 1]
+            if (lastMessage && lastMessage.role === 'assistant') {
+                lastMessage.content = (lastMessage.content || '') + data
+            }
+        },
+        onFinish: () => {
+            // Refresh page to update the sidebar and obtain conversation ID
+            if (!props.activeConversation) {
+                window.location.reload()
+            }
+        },
+        onError: (error) => {
+            console.error('Streaming error:', error)
+            // Delete assistant's message if an error occur
+            if (localMessages.value.length > 0) {
+                const lastMessage = localMessages.value[localMessages.value.length - 1]
+                if (lastMessage.role === 'assistant' && !lastMessage.content) {
+                    localMessages.value.pop()
+                }
+            }
+        },
+    }
+)
 
 defineExpose({
     focusInput: () => {
@@ -40,19 +74,31 @@ const updateModel = (model) => {
     emit('update-model', model)
 }
 
-const handleMessageSent = (message) => {
+const handleMessageSent = (messageData) => {
     if (!hasActiveConversation.value) {
         isCreatingConversation.value = true
     }
 
-    localMessages.value.push({
-        ...message,
-        id: 'temp-' + Date.now()
-    })
-}
+    const userMessage = {
+        id: 'temp-user-' + Date.now(),
+        role: 'user',
+        content: messageData.message,
+        created_at: new Date().toISOString(),
+    }
+    localMessages.value.push(userMessage)
 
-const openInstructions = () => {
-    showInstructionsModal.value = true
+    const assistantMessage = {
+        id: 'temp-assistant-' + Date.now(),
+        role: 'assistant',
+        content: '',
+        created_at: new Date().toISOString(),
+    }
+    localMessages.value.push(assistantMessage)
+
+    sendStream({
+        message: messageData.message,
+        model: messageData.model,
+    })
 }
 
 const closeInstructions = () => {
@@ -60,21 +106,25 @@ const closeInstructions = () => {
 }
 
 const onInstructionsSaved = () => {
-    // What to do when instructions are saved
+    window.location.reload()
 }
 
 watch(() => props.messages, (newMessages) => {
-    const hasTemporaryMessages = localMessages.value.some(msg =>
-        typeof msg.id === 'string' && msg.id.startsWith('temp-')
-    )
+    if (!isStreaming.value) {
+        const hasTemporaryMessages = localMessages.value.some(msg =>
+            typeof msg.id === 'string' && msg.id.startsWith('temp-')
+        )
 
-    if (!hasTemporaryMessages || newMessages.length > localMessages.value.length) {
-        localMessages.value = [...newMessages]
+        if (!hasTemporaryMessages || newMessages.length > localMessages.value.length) {
+            localMessages.value = [...newMessages]
+        }
     }
 }, { deep: true })
 
 watch(() => props.activeConversation, (newConversation) => {
-    localMessages.value = [...props.messages]
+    if (!isStreaming.value) {
+        localMessages.value = [...props.messages]
+    }
     if (newConversation) {
         isCreatingConversation.value = false
     }
@@ -100,7 +150,7 @@ watch(() => props.activeConversation, (newConversation) => {
                     New Conversation
                 </h1>
                 <p class="text-sm text-gray-500">
-                    Creating your conversation...
+                    {{ isStreaming ? 'AI is responding...' : 'Creating your conversation...' }}
                 </p>
             </div>
             <div v-else class="text-center">
@@ -118,6 +168,7 @@ watch(() => props.activeConversation, (newConversation) => {
             <MessageList
                 v-if="shouldShowMessages"
                 :messages="localMessages"
+                :is-streaming="isStreaming"
             />
             <div v-else class="h-full flex items-center justify-center">
                 <div class="text-center text-gray-500">
@@ -138,6 +189,7 @@ watch(() => props.activeConversation, (newConversation) => {
                 :selected-model="selectedModel"
                 :conversation-id="activeConversation?.id"
                 :user-instructions="userInstructions"
+                :is-streaming="isStreaming"
                 @update-model="updateModel"
                 @message-sent="handleMessageSent"
             />

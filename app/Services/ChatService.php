@@ -166,4 +166,38 @@ class ChatService
         })->toArray();
     }
 
+    public function stream(array $messages, string $model = null, float $temperature = 0.7): \OpenAI\Responses\StreamResponse
+    {
+        try {
+            logger()->info('Sending streamed message', [
+                'model' => $model,
+                'temperature' => $temperature,
+            ]);
+
+            $models = collect($this->getModels());
+            if (!$model || !$models->contains('id', $model)) {
+                $model = self::DEFAULT_MODEL;
+                logger()->info('Default model used:', ['model' => $model]);
+            }
+
+            $processedMessages = $this->processCustomCommands($messages);
+
+            $finalMessages = [$this->getChatSystemPrompt(), ...$processedMessages];
+
+            $stream = $this->client->chat()->createStreamed([
+                'model' => $model,
+                'messages' => $finalMessages,
+                'temperature' => $temperature,
+                'stream' => true,
+            ]);
+
+            return $stream;
+        } catch (\Exception $e) {
+            logger()->error('Stream error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
+        }
+    }
 }
