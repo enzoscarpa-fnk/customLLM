@@ -372,6 +372,9 @@ class ConversationController extends Controller
                 // Generate title based on assistant's first message
                 $conversation->generateTitleWithAI();
 
+                // IMPORTANT: Envoyer l'ID de la conversation à la fin du stream
+                echo "\n\n__CONVERSATION_ID__:" . $conversation->id . "__END__";
+
             } catch (\Exception $e) {
                 // If AI call fails, delete the conversation
                 $conversation->delete();

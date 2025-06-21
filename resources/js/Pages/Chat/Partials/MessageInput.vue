@@ -72,8 +72,6 @@ const submit = () => {
     const message = form.message
     const model = form.model
 
-    console.log('Émission message-sent:', { message, model }); // ← DEBUG
-
     // Emit message immediately to parent for streaming handling
     emit('message-sent', {
         message: message,
@@ -162,15 +160,6 @@ onMounted(() => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                 </svg>
             </button>
-        </div>
-
-        <!-- Loading Indicator -->
-        <div v-if="isStreaming" class="flex items-center justify-center text-sm text-gray-500">
-            <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            AI is responding...
         </div>
     </form>
 </template>

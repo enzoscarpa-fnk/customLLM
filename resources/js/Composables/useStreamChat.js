@@ -3,8 +3,6 @@ import { ref } from 'vue'
 export function useStreamChat() {
     const isStreaming = ref(false)
     const currentController = ref(null)
-    const displayQueue = ref([])
-    const isDisplaying = ref(false)
 
     const getCsrfToken = () => {
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
@@ -12,26 +10,6 @@ export function useStreamChat() {
             console.warn('⚠️ Token CSRF non trouvé dans les meta tags')
         }
         return token
-    }
-
-    const displayChunksWithDelay = async (handlers, delayMs = 30) => {
-        if (isDisplaying.value || displayQueue.value.length === 0) return
-
-        isDisplaying.value = true
-
-        while (displayQueue.value.length > 0) {
-            const chunk = displayQueue.value.shift()
-            if (handlers.onData) {
-                handlers.onData(chunk)
-            }
-
-            // Délai entre chaque caractère/chunk
-            if (displayQueue.value.length > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayMs))
-            }
-        }
-
-        isDisplaying.value = false
     }
 
     const initStream = (url, handlers) => {
@@ -47,7 +25,6 @@ export function useStreamChat() {
                     return false
                 }
 
-                console.log('📤 Envoi de données via fetch stream:', data)
                 isStreaming.value = true
 
                 // Créer un nouveau AbortController
@@ -70,21 +47,25 @@ export function useStreamChat() {
                         throw new Error(`HTTP error! status: ${response.status}`)
                     }
 
-                    console.log('✅ Réponse reçue, début du streaming')
-
                     const reader = response.body.getReader()
                     const decoder = new TextDecoder()
+                    let fullResponse = ''
 
                     while (true) {
                         const { done, value } = await reader.read()
 
                         if (done) {
-                            // Attendre que tous les chunks soient affichés
-                            while (displayQueue.value.length > 0) {
-                                await new Promise(resolve => setTimeout(resolve, 50))
+                            isStreaming.value = false
+
+                            // Vérifier si on a reçu un ID de conversation
+                            const conversationMatch = fullResponse.match(/__CONVERSATION_ID__:(\d+)__END__/)
+                            if (conversationMatch) {
+                                const conversationId = conversationMatch[1]
+                                if (handlers.onConversationCreated) {
+                                    handlers.onConversationCreated(conversationId)
+                                }
                             }
 
-                            isStreaming.value = false
                             if (handlers.onFinish) {
                                 handlers.onFinish()
                             }
@@ -92,10 +73,14 @@ export function useStreamChat() {
                         }
 
                         const chunk = decoder.decode(value, { stream: true })
+                        fullResponse += chunk
 
-                        displayQueue.value.push(chunk)
-
-                        displayChunksWithDelay(handlers, 20)
+                        // Ne pas afficher les métadonnées de conversation
+                        if (!chunk.includes('__CONVERSATION_ID__')) {
+                            if (handlers.onData) {
+                                handlers.onData(chunk)
+                            }
+                        }
                     }
 
                     return true

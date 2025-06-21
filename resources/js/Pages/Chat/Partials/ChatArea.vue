@@ -36,27 +36,21 @@ const initializeStream = () => {
         ? `/chat/${props.activeConversation.id}/stream`
         : '/chat/stream'
 
-    console.log('🚀 Initialisation stream avec URL:', url)
-
     streamController.value = initStream(url, {
         onData: (data) => {
-            console.log('📥 Données reçues dans ChatArea:', data)
             const lastMessage = state.messages[state.messages.length - 1]
             if (lastMessage && lastMessage.role === 'assistant') {
                 lastMessage.content = (lastMessage.content || '') + data
-                console.log('📝 Message mis à jour:', lastMessage.content.substring(0, 50) + '...')
             }
+        },
+        onConversationCreated: (conversationId) => {
+            // Rediriger vers la nouvelle conversation
+            window.location.href = `/chat/${conversationId}`
         },
         onFinish: () => {
-            console.log('✅ Stream terminé dans ChatArea')
-            if (!props.activeConversation) {
-                setTimeout(() => {
-                    window.location.reload()
-                }, 1000)
-            }
+            // Plus besoin de rechargement ici
         },
         onError: (error) => {
-            console.error('❌ Erreur de streaming dans ChatArea:', error)
             if (state.messages.length > 0) {
                 const lastMessage = state.messages[state.messages.length - 1]
                 if (lastMessage.role === 'assistant' && !lastMessage.content) {
@@ -68,17 +62,14 @@ const initializeStream = () => {
 }
 
 watch(() => props.activeConversation, (newConversation, oldConversation) => {
-    console.log('👀 Conversation changée:', { old: oldConversation?.id, new: newConversation?.id })
     initializeStream()
 })
 
 const sendStreamMessage = async (data) => {
     if (!streamController.value) {
-        console.warn('⚠️ Stream non initialisé')
         return false
     }
 
-    console.log('📤 Envoi message via stream:', data)
     return await streamController.value.send(data)
 }
 
@@ -107,7 +98,6 @@ const updateModel = (model) => {
 }
 
 const handleMessageSent = async (messageData) => {
-    console.log('📨 handleMessageSent:', messageData)
 
     if (!hasActiveConversation.value) {
         state.isCreatingConversation = true
@@ -131,8 +121,6 @@ const handleMessageSent = async (messageData) => {
     }
     state.messages.push(assistantMessage)
 
-    console.log('📋 Messages après ajout:', state.messages.length)
-
     // 3. Envoyer via le stream
     const success = await sendStreamMessage({
         message: messageData.message,
@@ -140,7 +128,6 @@ const handleMessageSent = async (messageData) => {
     })
 
     if (!success) {
-        console.error('❌ Échec de l\'envoi du message')
         // Supprimer les messages temporaires en cas d'échec
         state.messages.pop() // assistant message
         state.messages.pop() // user message
@@ -178,6 +165,7 @@ watch(() => props.activeConversation, (newConversation) => {
 </script>
 
 <template>
+    <!-- Template reste identique -->
     <div class="h-full flex flex-col">
         <!-- Header -->
         <div class="border-b border-gray-200 p-4">

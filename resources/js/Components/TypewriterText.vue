@@ -7,12 +7,15 @@ const props = defineProps({
         type: Number,
         default: 50 // millisecondes par caractère
     },
-    isStreaming: Boolean
+    isReceiving: Boolean
 })
+
+const emit = defineEmits(['typing-complete'])
 
 const displayedText = ref('')
 const currentIndex = ref(0)
 const animationId = ref(null)
+const isTypingComplete = ref(false)
 
 const typeWriter = () => {
     if (currentIndex.value < props.text.length) {
@@ -20,34 +23,31 @@ const typeWriter = () => {
         currentIndex.value++
 
         animationId.value = setTimeout(typeWriter, props.speed)
+    } else {
+        isTypingComplete.value = true
+        emit('typing-complete')
     }
 }
 
 // Watcher pour détecter les nouveaux caractères
 watch(() => props.text, (newText, oldText) => {
+    // Reset si le texte change complètement
+    if (newText.length < (oldText?.length || 0)) {
+        currentIndex.value = 0
+        displayedText.value = ''
+        isTypingComplete.value = false
+    }
+
     // Si le nouveau texte est plus long, continuer l'animation
-    if (newText.length > (oldText?.length || 0)) {
-        if (!animationId.value && currentIndex.value < newText.length) {
-            typeWriter()
-        }
+    if (newText.length > currentIndex.value && !animationId.value) {
+        typeWriter()
     }
 }, { immediate: true })
 
-// Curseur clignotant pendant le streaming
-const showCursor = ref(true)
-let cursorInterval = null
-
-watch(() => props.isStreaming, (streaming) => {
-    if (streaming) {
-        cursorInterval = setInterval(() => {
-            showCursor.value = !showCursor.value
-        }, 500)
-    } else {
-        if (cursorInterval) {
-            clearInterval(cursorInterval)
-            cursorInterval = null
-        }
-        showCursor.value = false
+// Reset quand on commence à recevoir de nouvelles données
+watch(() => props.isReceiving, (receiving) => {
+    if (receiving) {
+        isTypingComplete.value = false
     }
 })
 
@@ -59,13 +59,9 @@ onMounted(() => {
 </script>
 
 <template>
-    <span class="typewriter-container">
+    <div class="typewriter-container">
         <span v-html="displayedText"></span>
-        <span
-            v-if="isStreaming && showCursor"
-            class="cursor animate-pulse"
-        >|</span>
-    </span>
+    </div>
 </template>
 
 <style scoped>
