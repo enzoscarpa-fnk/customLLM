@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, watch, nextTick, shallowRef } from 'vue'
-import { useStream } from '@laravel/stream-vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { useStreamChat } from '@/Composables/useStreamChat'
 import MessageList from './MessageList.vue'
 import MessageInput from './MessageInput.vue'
 import CustomInstructionsModal from './CustomInstructions/CustomInstructionsModal.vue'
@@ -18,18 +18,20 @@ const emit = defineEmits(['update-model'])
 const localMessages = ref([...props.messages])
 const isCreatingConversation = ref(false)
 const showInstructionsModal = ref(false)
-
 const messageInputRef = ref(null)
 
-// Utiliser shallowRef pour stocker l'instance useStream
-const streamInstance = shallowRef(null)
-const isStreaming = ref(false)
+const { initStream, isStreaming, cleanup } = useStreamChat()
+const streamController = ref(null)
 
-// Fonction pour créer une nouvelle instance de stream
-const createStreamInstance = (url) => {
-    console.log('🔄 Création nouvelle instance stream pour URL:', url)
+// Initialiser le stream
+const initializeStream = () => {
+    const url = props.activeConversation && props.activeConversation.id
+        ? `/chat/${props.activeConversation.id}/stream`
+        : '/chat/stream'
 
-    return useStream(url, {
+    console.log('🚀 Initialisation stream avec URL:', url)
+
+    streamController.value = initStream(url, {
         onData: (data) => {
             const lastMessage = localMessages.value[localMessages.value.length - 1]
             if (lastMessage && lastMessage.role === 'assistant') {
@@ -37,55 +39,43 @@ const createStreamInstance = (url) => {
             }
         },
         onFinish: () => {
-            isStreaming.value = false
             if (!props.activeConversation) {
                 window.location.reload()
             }
         },
         onError: (error) => {
-            console.error('Streaming error:', error)
-            isStreaming.value = false
+            console.error('Erreur de streaming:', error)
             if (localMessages.value.length > 0) {
                 const lastMessage = localMessages.value[localMessages.value.length - 1]
                 if (lastMessage.role === 'assistant' && !lastMessage.content) {
                     localMessages.value.pop()
                 }
             }
-        },
+        }
     })
 }
 
-// Initialiser l'instance stream
-const initializeStream = () => {
-    const url = props.activeConversation && props.activeConversation.id
-        ? `/chat/${props.activeConversation.id}/stream`
-        : '/chat/stream'
-
-    console.log('🚀 Initialisation stream avec URL:', url)
-    streamInstance.value = createStreamInstance(url)
-}
-
-// Watcher pour recréer l'instance quand la conversation change
+// Watcher pour réinitialiser le stream quand la conversation change
 watch(() => props.activeConversation, (newConversation, oldConversation) => {
     console.log('👀 Conversation changée:', { old: oldConversation?.id, new: newConversation?.id })
-
-    // Recréer l'instance stream avec la nouvelle URL
-    nextTick(() => {
-        initializeStream()
-    })
+    initializeStream()
 }, { immediate: true })
 
 // Fonction pour envoyer un message
 const sendStreamMessage = (data) => {
-    if (!streamInstance.value || isStreaming.value) {
-        console.warn('⚠️ Stream non disponible ou déjà en cours')
-        return
+    if (!streamController.value) {
+        console.warn('⚠️ Stream non initialisé')
+        return false
     }
 
     console.log('📤 Envoi message via stream:', data)
-    isStreaming.value = true
-    streamInstance.value.send(data)
+    return streamController.value.send(data)
 }
+
+// Nettoyage lors de la destruction du composant
+onBeforeUnmount(() => {
+    cleanup()
+})
 
 defineExpose({
     focusInput: () => {
@@ -133,10 +123,16 @@ const handleMessageSent = (messageData) => {
     localMessages.value.push(assistantMessage)
 
     // 3. Envoyer via le stream
-    sendStreamMessage({
+    const success = sendStreamMessage({
         message: messageData.message,
         model: messageData.model,
     })
+
+    if (!success) {
+        // Supprimer les messages temporaires en cas d'échec
+        localMessages.value.pop() // assistant message
+        localMessages.value.pop() // user message
+    }
 }
 
 const closeInstructions = () => {

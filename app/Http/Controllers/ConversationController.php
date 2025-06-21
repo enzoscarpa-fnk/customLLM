@@ -257,7 +257,7 @@ class ConversationController extends Controller
 
         $messages = $this->buildMessagesWithInstructions($user, $conversationMessages);
 
-        return response()->stream(function () use ($conversation, $messages, $request) {
+        $response = response()->stream(function () use ($conversation, $messages, $request) {
             $fullResponse = '';
 
             try {
@@ -269,7 +269,9 @@ class ConversationController extends Controller
                 foreach ($stream as $response) {
                     $content = $response->choices[0]->delta->content ?? '';
                     $fullResponse .= $content;
-                    yield $content;
+                    echo $content;
+                    ob_flush();
+                    flush();
                 }
 
                 // Create assistant message with complete response
@@ -284,9 +286,17 @@ class ConversationController extends Controller
 
             } catch (\Exception $e) {
                 logger()->error('Streaming error:', ['error' => $e->getMessage()]);
-                yield " " . json_encode(['error' => 'An error occured']) . "\n\n";
+                echo " " . json_encode(['error' => 'An error occurred']) . "\n\n";
             }
-        })->header('X-Accel-Buffering', 'no');
+        });
+
+        // Définir les en-têtes correctement pour StreamedResponse
+        $response->headers->set('Content-Type', 'text/event-stream');
+        $response->headers->set('Cache-Control', 'no-cache');
+        $response->headers->set('Connection', 'keep-alive');
+        $response->headers->set('X-Accel-Buffering', 'no');
+
+        return $response;
     }
 
     /**
@@ -325,7 +335,7 @@ class ConversationController extends Controller
             ['role' => 'user', 'content' => $processedMessage]
         ]);
 
-        return response()->stream(function () use ($conversation, $messages, $request) {
+        $response = response()->stream(function () use ($conversation, $messages, $request) {
             $fullResponse = '';
 
             try {
@@ -337,7 +347,9 @@ class ConversationController extends Controller
                 foreach ($stream as $response) {
                     $content = $response->choices[0]->delta->content ?? '';
                     $fullResponse .= $content;
-                    yield $content;
+                    echo $content;
+                    ob_flush();
+                    flush();
                 }
 
                 // Create assistant message
@@ -357,9 +369,17 @@ class ConversationController extends Controller
                 // If AI call fails, delete the conversation
                 $conversation->delete();
                 logger()->error('New conversation streaming error:', ['error' => $e->getMessage()]);
-                yield " " . json_encode(['error' => 'An error occured']) . "\n\n";
+                echo " " . json_encode(['error' => 'An error occurred']) . "\n\n";
             }
-        })->header('X-Accel-Buffering', 'no');
+        });
+
+        // Définir les en-têtes correctement pour StreamedResponse
+        $response->headers->set('Content-Type', 'text/event-stream');
+        $response->headers->set('Cache-Control', 'no-cache');
+        $response->headers->set('Connection', 'keep-alive');
+        $response->headers->set('X-Accel-Buffering', 'no');
+
+        return $response;
     }
 
 
