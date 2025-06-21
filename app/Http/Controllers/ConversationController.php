@@ -259,6 +259,7 @@ class ConversationController extends Controller
 
         $response = response()->stream(function () use ($conversation, $messages, $request) {
             $fullResponse = '';
+            \Log::info('🚀 Début du streaming');
 
             try {
                 $stream = $this->chatService->stream(
@@ -269,10 +270,14 @@ class ConversationController extends Controller
                 foreach ($stream as $response) {
                     $content = $response->choices[0]->delta->content ?? '';
                     $fullResponse .= $content;
+
+                    \Log::info('📤 Envoi de contenu:', ['content' => $content]);
                     echo $content;
                     ob_flush();
                     flush();
                 }
+
+                \Log::info('💾 Sauvegarde du message complet:', ['content' => $fullResponse]);
 
                 // Create assistant message with complete response
                 $conversation->messages()->create([
@@ -284,8 +289,10 @@ class ConversationController extends Controller
                 // Update conversation timestamp
                 $conversation->updateLastMessageTime();
 
+                \Log::info('✅ Streaming terminé avec succès');
+
             } catch (\Exception $e) {
-                logger()->error('Streaming error:', ['error' => $e->getMessage()]);
+                \Log::error('❌ Erreur de streaming:', ['error' => $e->getMessage()]);
                 echo " " . json_encode(['error' => 'An error occurred']) . "\n\n";
             }
         });
