@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick, watch, computed } from 'vue'
+import TypewriterText from "@/Components/TypewriterText.vue";
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 
@@ -119,10 +120,7 @@ onMounted(() => {
             }"
         >
             <!-- User Message -->
-            <div
-                v-if="message.role === 'user'"
-                class="max-w-3xl bg-blue-600 text-white rounded-lg px-4 py-2"
-            >
+            <div v-if="message.role === 'user'" class="max-w-3xl bg-blue-600 text-white rounded-lg px-4 py-2">
                 <div class="whitespace-pre-wrap text-white">
                     {{ message.content }}
                 </div>
@@ -131,21 +129,19 @@ onMounted(() => {
                 </div>
             </div>
 
-            <!-- Assistant Message -->
-            <div
-                v-else-if="message.role === 'assistant'"
-                class="max-w-3xl bg-gray-100 text-gray-900 rounded-lg px-4 py-2"
-            >
-                <!-- Contenu du message -->
-                <div
-                    v-if="message.content && message.content.trim() !== ''"
-                    class="prose prose-sm max-w-none prose-gray prose-pre:bg-gray-200 prose-pre:text-gray-800"
-                    v-html="renderMarkdown(message.content)"
-                ></div>
+            <!-- Assistant Message avec animation -->
+            <div v-else-if="message.role === 'assistant'" class="max-w-3xl bg-gray-100 text-gray-900 rounded-lg px-4 py-2">
+                <div class="prose prose-sm max-w-none prose-gray prose-pre:bg-gray-200 prose-pre:text-gray-800">
+                    <TypewriterText
+                        :text="renderMarkdown(message.content)"
+                        :speed="30"
+                        :is-streaming="isStreamingLastMessage && message === lastAssistantMessage"
+                    />
+                </div>
 
-                <!-- Indicateur de streaming pour ce message spécifique -->
+                <!-- Indicateur de streaming si le message est vide -->
                 <div
-                    v-if="isStreamingLastMessage && message === lastAssistantMessage"
+                    v-if="isStreamingLastMessage && message === lastAssistantMessage && !message.content"
                     class="flex items-center space-x-2 mt-2"
                 >
                     <div class="animate-pulse flex space-x-1">
@@ -156,35 +152,42 @@ onMounted(() => {
                     <span class="text-xs text-gray-500">AI is typing...</span>
                 </div>
 
-                <!-- Placeholder si le message est vide et pas en streaming -->
-                <div
-                    v-else-if="!message.content || message.content.trim() === ''"
-                    class="text-gray-400 italic"
-                >
-                    <em>Generating response from AI...</em>
-                </div>
-
                 <div class="text-xs mt-1 text-left text-gray-500">
                     {{ formatTime(message.created_at) }}
                 </div>
             </div>
         </div>
-
-        <!-- Indicateur global de streaming si aucun message assistant n'est présent -->
-        <div
-            v-if="isStreaming && !lastAssistantMessage"
-            class="flex justify-start"
-        >
-            <div class="max-w-3xl bg-gray-100 text-gray-900 rounded-lg px-4 py-2">
-                <div class="flex items-center space-x-2">
-                    <div class="animate-pulse flex space-x-1">
-                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                    </div>
-                    <span class="text-xs text-gray-500">AI is preparing response...</span>
-                </div>
-            </div>
-        </div>
     </div>
 </template>
+
+<style scoped>
+.message-enter-active {
+    transition: all 0.3s ease-out;
+}
+
+.message-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.message-enter-to {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Animation pour le contenu qui grandit */
+.content-grow {
+    animation: contentGrow 0.2s ease-out;
+}
+
+@keyframes contentGrow {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+    to {
+        max-height: 200px;
+        opacity: 1;
+    }
+}
+</style>

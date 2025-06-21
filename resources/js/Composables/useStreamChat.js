@@ -3,6 +3,8 @@ import { ref } from 'vue'
 export function useStreamChat() {
     const isStreaming = ref(false)
     const currentController = ref(null)
+    const displayQueue = ref([])
+    const isDisplaying = ref(false)
 
     const getCsrfToken = () => {
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
@@ -12,10 +14,28 @@ export function useStreamChat() {
         return token
     }
 
-    const initStream = (url, handlers) => {
-        console.log('🔄 Initialisation du stream avec URL:', url)
+    const displayChunksWithDelay = async (handlers, delayMs = 30) => {
+        if (isDisplaying.value || displayQueue.value.length === 0) return
 
-        // Nettoyer l'ancien controller si il existe
+        isDisplaying.value = true
+
+        while (displayQueue.value.length > 0) {
+            const chunk = displayQueue.value.shift()
+            if (handlers.onData) {
+                handlers.onData(chunk)
+            }
+
+            // Délai entre chaque caractère/chunk
+            if (displayQueue.value.length > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayMs))
+            }
+        }
+
+        isDisplaying.value = false
+    }
+
+    const initStream = (url, handlers) => {
+
         if (currentController.value) {
             currentController.value.abort()
         }
@@ -59,7 +79,11 @@ export function useStreamChat() {
                         const { done, value } = await reader.read()
 
                         if (done) {
-                            console.log('✅ Stream terminé')
+                            // Attendre que tous les chunks soient affichés
+                            while (displayQueue.value.length > 0) {
+                                await new Promise(resolve => setTimeout(resolve, 50))
+                            }
+
                             isStreaming.value = false
                             if (handlers.onFinish) {
                                 handlers.onFinish()
@@ -68,11 +92,10 @@ export function useStreamChat() {
                         }
 
                         const chunk = decoder.decode(value, { stream: true })
-                        console.log('📥 Chunk reçu:', chunk)
 
-                        if (handlers.onData) {
-                            handlers.onData(chunk)
-                        }
+                        displayQueue.value.push(chunk)
+
+                        displayChunksWithDelay(handlers, 20)
                     }
 
                     return true
