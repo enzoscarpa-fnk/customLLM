@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, shallowRef } from 'vue'
 import { useStream } from '@laravel/stream-vue'
 import MessageList from './MessageList.vue'
 import MessageInput from './MessageInput.vue'
@@ -21,29 +21,30 @@ const showInstructionsModal = ref(false)
 
 const messageInputRef = ref(null)
 
-const { isStreaming, send: sendStream } = useStream(
-    computed(() =>
-        props.activeConversation
-            ? `/chat/${props.activeConversation.id}/stream`
-            : '/chat/stream'
-    ),
-    {
+// Utiliser shallowRef pour stocker l'instance useStream
+const streamInstance = shallowRef(null)
+const isStreaming = ref(false)
+
+// Fonction pour créer une nouvelle instance de stream
+const createStreamInstance = (url) => {
+    console.log('🔄 Création nouvelle instance stream pour URL:', url)
+
+    return useStream(url, {
         onData: (data) => {
-            // Concatenate chunks
             const lastMessage = localMessages.value[localMessages.value.length - 1]
             if (lastMessage && lastMessage.role === 'assistant') {
                 lastMessage.content = (lastMessage.content || '') + data
             }
         },
         onFinish: () => {
-            // Refresh page to update the sidebar and obtain conversation ID
+            isStreaming.value = false
             if (!props.activeConversation) {
                 window.location.reload()
             }
         },
         onError: (error) => {
             console.error('Streaming error:', error)
-            // Delete assistant's message if an error occur
+            isStreaming.value = false
             if (localMessages.value.length > 0) {
                 const lastMessage = localMessages.value[localMessages.value.length - 1]
                 if (lastMessage.role === 'assistant' && !lastMessage.content) {
@@ -51,8 +52,40 @@ const { isStreaming, send: sendStream } = useStream(
                 }
             }
         },
+    })
+}
+
+// Initialiser l'instance stream
+const initializeStream = () => {
+    const url = props.activeConversation && props.activeConversation.id
+        ? `/chat/${props.activeConversation.id}/stream`
+        : '/chat/stream'
+
+    console.log('🚀 Initialisation stream avec URL:', url)
+    streamInstance.value = createStreamInstance(url)
+}
+
+// Watcher pour recréer l'instance quand la conversation change
+watch(() => props.activeConversation, (newConversation, oldConversation) => {
+    console.log('👀 Conversation changée:', { old: oldConversation?.id, new: newConversation?.id })
+
+    // Recréer l'instance stream avec la nouvelle URL
+    nextTick(() => {
+        initializeStream()
+    })
+}, { immediate: true })
+
+// Fonction pour envoyer un message
+const sendStreamMessage = (data) => {
+    if (!streamInstance.value || isStreaming.value) {
+        console.warn('⚠️ Stream non disponible ou déjà en cours')
+        return
     }
-)
+
+    console.log('📤 Envoi message via stream:', data)
+    isStreaming.value = true
+    streamInstance.value.send(data)
+}
 
 defineExpose({
     focusInput: () => {
@@ -75,10 +108,13 @@ const updateModel = (model) => {
 }
 
 const handleMessageSent = (messageData) => {
+    console.log('📨 handleMessageSent:', messageData)
+
     if (!hasActiveConversation.value) {
         isCreatingConversation.value = true
     }
 
+    // 1. Ajouter le message utilisateur
     const userMessage = {
         id: 'temp-user-' + Date.now(),
         role: 'user',
@@ -87,6 +123,7 @@ const handleMessageSent = (messageData) => {
     }
     localMessages.value.push(userMessage)
 
+    // 2. Ajouter un message vide pour l'assistant
     const assistantMessage = {
         id: 'temp-assistant-' + Date.now(),
         role: 'assistant',
@@ -95,7 +132,8 @@ const handleMessageSent = (messageData) => {
     }
     localMessages.value.push(assistantMessage)
 
-    sendStream({
+    // 3. Envoyer via le stream
+    sendStreamMessage({
         message: messageData.message,
         model: messageData.model,
     })

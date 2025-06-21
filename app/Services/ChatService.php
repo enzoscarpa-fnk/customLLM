@@ -166,7 +166,7 @@ class ChatService
         })->toArray();
     }
 
-    public function stream(array $messages, string $model = null, float $temperature = 0.7): \OpenAI\Responses\StreamResponse
+    public function stream(array $messages, ?string $model = null, float $temperature = 0.7): \OpenAI\Responses\StreamResponse
     {
         try {
             logger()->info('Sending streamed message', [
