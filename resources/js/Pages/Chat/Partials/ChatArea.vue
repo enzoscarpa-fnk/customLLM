@@ -168,7 +168,7 @@ watch(() => props.activeConversation, (newConversation) => {
     <!-- Template reste identique -->
     <div class="h-full flex flex-col">
         <!-- Header -->
-        <div class="border-b border-gray-200 p-4">
+        <div class="border-b border-gray-200 p-4 flex-shrink-0">
             <div v-if="hasActiveConversation" class="flex items-center justify-between">
                 <div>
                     <h1 class="text-lg font-semibold text-gray-900">
@@ -198,7 +198,7 @@ watch(() => props.activeConversation, (newConversation) => {
         </div>
 
         <!-- Messages Area -->
-        <div class="flex-1 overflow-hidden">
+        <div class="flex-1 min-h-0">
             <MessageList
                 v-if="shouldShowMessages"
                 :messages="state.messages"
@@ -216,7 +216,7 @@ watch(() => props.activeConversation, (newConversation) => {
         </div>
 
         <!-- Message Input -->
-        <div class="border-t border-gray-200 p-4">
+        <div class="border-t border-gray-200 p-4 flex-shrink-0">
             <MessageInput
                 ref="messageInputRef"
                 :models="models"
