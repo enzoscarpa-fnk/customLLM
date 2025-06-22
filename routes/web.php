@@ -28,6 +28,8 @@ Route::middleware([
     Route::get('/chat/{conversation}', [ConversationController::class, 'show'])->name('chat.show');
     Route::delete('/chat/{conversation}', [ConversationController::class, 'destroy'])->name('chat.destroy');
     Route::post('/chat/{conversation}/message', [ConversationController::class, 'addMessage'])->name('chat.message');
+    Route::post('/chat/stream', [ConversationController::class, 'storeStream'])->name('chat.stream.store');
+    Route::post('/chat/{conversation}/stream', [ConversationController::class, 'addMessageStream'])->name('chat.stream.message');
 
     // User Instructions Routes
     Route::post('/instructions', [UserInstructionController::class, 'store'])->name('instructions.store');

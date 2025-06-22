@@ -82,13 +82,13 @@ onMounted(() => {
 
 <template>
     <AppLayout title="Chat">
-        <div class="py-2">
-            <div class="mx-auto sm:px-6 lg:px-10">
-                <div class="bg-white overflow-hidden sm:rounded-2xl">
+        <div class="h-[calc(100vh-65px)] flex flex-col">
+            <div class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-2 min-h-0">
+                <div class="bg-white overflow-hidden sm:rounded-2xl h-full w-full">
 
-                    <div class="flex h-[800px]">
+                    <div class="flex h-full w-full">
                         <!-- Sidebar -->
-                        <div class="w-1/4 border-r border-gray-200">
+                        <div class="hidden md:flex md:w-90 border-r border-gray-200">
                             <Sidebar
                                 :conversations="conversations"
                                 :active-conversation="activeConversation"
@@ -99,7 +99,7 @@ onMounted(() => {
                         </div>
 
                         <!-- Chat Area -->
-                        <div class="flex-1">
+                        <div class="flex-1 min-w-0 overflow-hidden">
                             <ChatArea
                                 ref="chatAreaRef"
                                 :active-conversation="activeConversation"
