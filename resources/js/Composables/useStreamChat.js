@@ -7,7 +7,7 @@ export function useStreamChat() {
     const getCsrfToken = () => {
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         if (!token) {
-            console.warn('⚠️ Token CSRF non trouvé dans les meta tags')
+            console.warn('⚠️ CSRF token not found in meta tags')
         }
         return token
     }
@@ -21,13 +21,13 @@ export function useStreamChat() {
         return {
             send: async (data) => {
                 if (isStreaming.value) {
-                    console.warn('⚠️ Stream déjà en cours')
+                    console.warn('⚠️ Streaming')
                     return false
                 }
 
                 isStreaming.value = true
 
-                // Créer un nouveau AbortController
+                // Create new AbortController
                 currentController.value = new AbortController()
 
                 try {
@@ -57,7 +57,7 @@ export function useStreamChat() {
                         if (done) {
                             isStreaming.value = false
 
-                            // Vérifier si on a reçu un ID de conversation
+                            // Check if new conversation ID
                             const conversationMatch = fullResponse.match(/__CONVERSATION_ID__:(\d+)__END__/)
                             if (conversationMatch) {
                                 const conversationId = conversationMatch[1]
@@ -75,7 +75,7 @@ export function useStreamChat() {
                         const chunk = decoder.decode(value, { stream: true })
                         fullResponse += chunk
 
-                        // Ne pas afficher les métadonnées de conversation
+                        // Hide conversation metadata
                         if (!chunk.includes('__CONVERSATION_ID__')) {
                             if (handlers.onData) {
                                 handlers.onData(chunk)
@@ -86,7 +86,7 @@ export function useStreamChat() {
                     return true
 
                 } catch (error) {
-                    console.error('❌ Erreur de streaming:', error)
+                    console.error('Streaming error:', error)
                     isStreaming.value = false
                     if (handlers.onError) {
                         handlers.onError(error)
