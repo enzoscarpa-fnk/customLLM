@@ -1,9 +1,12 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, markRaw } from 'vue'
 import { useForm, router, usePage } from '@inertiajs/vue3'
 import AboutYouSection from './AboutYouSection.vue'
 import BehaviorSection from './BehaviorSection.vue'
 import CommandsSection from './CommandsSection.vue'
+import IconAbout from '@/Components/icons/IconAbout.vue';
+import IconBehavior from '@/Components/icons/IconBehavior.vue';
+import IconCommands from '@/Components/icons/IconCommands.vue';
 import { route } from 'ziggy-js';
 
 const props = defineProps({
@@ -25,10 +28,11 @@ const form = useForm({
 const activeTab = ref('about')
 
 const tabs = [
-    { id: 'about', label: 'About You', icon: '👤' },
-    { id: 'behavior', label: 'Behavior', icon: '🎯' },
-    { id: 'commands', label: 'Commands', icon: '⚡' }
-]
+    { id: 'about', label: 'About You', icon: markRaw(IconAbout) },
+    { id: 'behavior', label: 'Behavior', icon: markRaw(IconBehavior) },
+    { id: 'commands', label: 'Commands', icon: markRaw(IconCommands) }
+];
+
 
 // Initialize data from props
 const initializeData = () => {
@@ -76,7 +80,8 @@ const save = () => {
     })
 }
 
-const toggleEnabled = async () => {
+const toggleEnabled = async (event) => {
+    form.enabled = event.target.checked
     try {
         router.post(route('instructions.toggle'), {
             enabled: form.enabled
@@ -121,13 +126,6 @@ watch(() => props.userInstructions, (newInstructions) => {
         initializeData()
     }
 }, { deep: true })
-
-// Watch for enabled toggle
-watch(() => form.enabled, (newValue, oldValue) => {
-    if (oldValue !== undefined && newValue !== oldValue) {
-        toggleEnabled()
-    }
-})
 </script>
 
 <template>
@@ -143,62 +141,63 @@ watch(() => form.enabled, (newValue, oldValue) => {
 
             <!-- Modal panel -->
             <div
-                class="inline-block w-full max-w-4xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg"
+                class="inline-block w-full max-w-4xl p-6 my-4 overflow-hidden text-left align-middle transition-all transform text-neutral-200 bg-neutral-900 shadow-xl [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]"
                 @click.stop
             >
                 <!-- Header -->
-                <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+                <div class="flex items-center justify-between pb-4 border-b-2 border-yellow-400">
                     <div>
-                        <h3 class="text-lg font-medium text-gray-900">
+                        <h3 class="text-lg font-medium text-neutral-200">
                             Custom Instructions
                         </h3>
-                        <p class="text-sm text-gray-500">
+                        <p class="text-sm text-neutral-400">
                             Personalize how the AI assistant interacts with you
                         </p>
                     </div>
                     <button
                         @click="closeModal"
-                        class="text-gray-400 hover:text-gray-600 transition-colors"
+                        class="text-neutral-300 hover:text-pink-600 transition-colors"
                     >
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
 
                 <!-- Enable/Disable Toggle -->
-                <div class="flex items-center justify-between py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between py-4 border-b-2 border-yellow-400">
                     <div>
-                        <label class="text-sm font-medium text-gray-700">
+                        <label class="text-sm font-medium text-neutral-200">
                             Enable Custom Instructions
                         </label>
-                        <p class="text-xs text-gray-500">
+                        <p class="text-xs text-neutral-400">
                             Apply these instructions to all new conversations
                         </p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input
-                            v-model="form.enabled"
+                            :checked="form.enabled"
                             type="checkbox"
                             class="sr-only peer"
+                            @change="toggleEnabled"
                         >
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-neutral-700 peer-focus:outline-none peer peer-checked:after:translate-x-full peer-checked:after:border-neutral-800 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-800 after:border-yellow-400 after:border after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-400"></div>
                     </label>
                 </div>
 
                 <!-- Tabs -->
-                <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg mt-4">
+                <div class="flex space-x-1 bg-neutral-700 p-1 mt-4 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]">
                     <button
                         v-for="tab in tabs"
                         :key="tab.id"
                         @click="activeTab = tab.id"
-                        class="flex-1 flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                        class="flex-1 flex items-center justify-center px-3 py-2 text-sm font-medium transition-colors"
                         :class="{
-                            'bg-white text-blue-600 shadow-sm': activeTab === tab.id,
-                            'text-gray-500 hover:text-gray-700': activeTab !== tab.id
+                            'bg-yellow-400 text-neutral-900 shadow-sm [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]': activeTab === tab.id,
+                            'text-neutral-200 hover:text-yellow-400': activeTab !== tab.id
                         }"
                     >
-                        <span class="mr-2">{{ tab.icon }}</span>
+                        <component :is="tab.icon" class="mr-2 w-5 h-5" />
                         {{ tab.label }}
                     </button>
                 </div>
@@ -226,17 +225,17 @@ watch(() => form.enabled, (newValue, oldValue) => {
                 </div>
 
                 <!-- Footer -->
-                <div class="flex items-center justify-end pt-6 space-x-3 border-t border-gray-200">
+                <div class="flex items-center justify-end pt-6 mt-3 space-x-3 border-t-2 border-yellow-400">
                     <button
                         @click="closeModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        class="px-4 py-2 text-sm font-medium text-neutral-800 bg-neutral-200 border border-neutral-300 hover:bg-pink-600 hover:border-pink-800 hover:text-neutral-200 focus:outline-none transition-all [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_24px)]"
                     >
                         Close
                     </button>
                     <button
                         @click="save"
                         :disabled="form.processing"
-                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                        class="px-4 py-2 text-sm font-medium text-neutral-800 bg-yellow-400 border border-transparent hover:bg-amber-400 focus:outline-none disabled:opacity-50 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_24px)]"
                     >
                         <span v-if="form.processing">Saving...</span>
                         <span v-else>Save All Instructions</span>

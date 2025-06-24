@@ -165,22 +165,21 @@ watch(() => props.activeConversation, (newConversation) => {
 </script>
 
 <template>
-    <!-- Template reste identique -->
     <div class="h-full flex flex-col">
         <!-- Header -->
-        <div class="border-b border-gray-200 p-4 flex-shrink-0">
+        <div class="border-b-2 border-yellow-400 p-4 flex-shrink-0">
             <div v-if="hasActiveConversation" class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-lg font-semibold text-gray-900">
+                    <h1 class="text-lg font-semibold text-yellow-400">
                         {{ activeConversation.title }}
                     </h1>
-                    <p class="text-sm text-gray-500">
+                    <p class="text-sm text-neutral-400">
                         Model: {{ activeConversation.model_name }}
                     </p>
                 </div>
             </div>
             <div v-else-if="state.isCreatingConversation" class="text-center">
-                <h1 class="text-lg font-semibold text-gray-900">
+                <h1 class="text-lg font-semibold text-neutral-300">
                     New Conversation
                 </h1>
                 <p class="text-sm text-gray-500">
@@ -188,10 +187,10 @@ watch(() => props.activeConversation, (newConversation) => {
                 </p>
             </div>
             <div v-else class="text-center">
-                <h1 class="text-lg font-semibold text-gray-900">
+                <h1 class="text-lg font-semibold text-neutral-300">
                     Start a new conversation
                 </h1>
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-neutral-400">
                     Choose a model and send your first message
                 </p>
             </div>
@@ -203,20 +202,21 @@ watch(() => props.activeConversation, (newConversation) => {
                 v-if="shouldShowMessages"
                 :messages="state.messages"
                 :is-streaming="isStreaming"
+                class="scrollbar scrollbar-w-2 scrollbar-track-stone-800 scrollbar-thumb-stone-600 h-full overflow-y-auto"
             />
             <div v-else class="h-full flex items-center justify-center">
-                <div class="text-center text-gray-500">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="text-center text-neutral-300">
+                    <svg class="mx-auto h-12 w-12 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                     </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">No conversation selected</h3>
-                    <p class="mt-1 text-sm text-gray-500">Start a new chat to begin messaging</p>
+                    <h3 class="mt-2 text-sm font-semibold text-yellow-400">No conversation selected</h3>
+                    <p class="mt-1 text-sm text-natural-300">Start a new chat to begin messaging</p>
                 </div>
             </div>
         </div>
 
         <!-- Message Input -->
-        <div class="border-t border-gray-200 p-4 flex-shrink-0">
+        <div class="border-t-2 border-yellow-400 p-4 flex-shrink-0">
             <MessageInput
                 ref="messageInputRef"
                 :models="models"

@@ -113,14 +113,14 @@ onMounted(() => {
 <template>
     <form @submit.prevent="submit" class="space-y-4">
         <!-- Model Selector -->
-        <div class="flex items-end space-x-3">
-            <label class="block text-sm font-medium text-gray-700 mb-2 shrink-0">
+        <div class="flex flex-col sm:flex-row sm:items-end space-y-2 sm:space-y-0 sm:space-x-3">
+            <label class="block text-sm font-semibold text-yellow-400 sm:mb-3 shrink-0">
                 AI Model
             </label>
             <select
                 v-model="form.model"
                 @change="updateModel(form.model)"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                class="w-full sm:w-auto appearance-none bg-yellow-400 text-neutral-900 px-4 py-2 pr-8 focus:border-yellow-400 focus:outline-none [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-13px))]"
                 :disabled="isStreaming"
             >
                 <option value="" disabled>Select a model</option>
@@ -141,7 +141,7 @@ onMounted(() => {
                 v-model="form.message"
                 @keydown="handleKeydown"
                 rows="3"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-12"
+                class="appearance-none resize-none w-full border-gray-300 shadow-sm focus:ring-yellow-400 text-sm pr-12 [clip-path:polygon(0_0,100%_0,100%_calc(100%-16px),calc(100%-18px)_100%,0_100%)]"
                 placeholder="Type your message..."
                 :disabled="isStreaming"
             ></textarea>
@@ -150,14 +150,14 @@ onMounted(() => {
             <button
                 type="submit"
                 :disabled="isStreaming"
-                class="absolute bottom-2 right-2 inline-flex items-center p-2 bg-blue-600 border border-transparent rounded-md font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="[clip-path:polygon(50%_0,100%_50%,50%_100%,0_50%)] absolute bottom-8 right-2 inline-flex items-center p-2 bg-neutral-800 border border-transparent rounded-md font-semibold text-neutral-200  hover:text-yellow-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                <svg v-if="isStreaming" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg v-if="isStreaming" class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                <svg v-else class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <polygon points="12,2 22,12 18,16 12,10 6,16 2,12" />
                 </svg>
             </button>
         </div>

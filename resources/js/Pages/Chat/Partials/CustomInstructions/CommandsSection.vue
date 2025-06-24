@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
+import IconCommands from '@/Components/icons/IconCommands.vue';
 
 const props = defineProps({
     modelValue: Array,
@@ -191,19 +192,19 @@ const clearAllCommands = async () => {
     <div class="space-y-6">
         <!-- Header -->
         <div>
-            <h3 class="text-lg font-medium text-gray-900 flex items-center">
-                <span class="mr-2">⚡</span>
+            <h3 class="text-lg font-medium text-yellow-400 flex items-center">
+                <IconCommands class="mr-2 w-5 h-5" />
                 Custom Commands
             </h3>
-            <p class="mt-1 text-sm text-gray-600">
+            <p class="mt-1 text-sm text-neutral-400">
                 Create custom commands to quickly access specific types of responses or perform common tasks.
             </p>
         </div>
 
         <!-- Existing Commands -->
-        <div v-if="existingCommands.length > 0">
+        <div v-if="existingCommands.length > 0" class="bg-yellow-400 p-4 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]">
             <div class="flex items-center justify-between mb-3">
-                <h4 class="text-sm font-medium text-gray-900 flex items-center">
+                <h4 class="text-sm font-medium text-neutral-900 flex items-center">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
@@ -212,7 +213,7 @@ const clearAllCommands = async () => {
                 <button
                     @click="clearAllCommands"
                     :disabled="isLoading"
-                    class="text-xs text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors disabled:opacity-50"
+                    class="text-xs text-rose-600 hover:text-rose-600 hover:bg-neutral-800 px-2 py-1 transition-colors disabled:opacity-50 [clip-path:polygon(0_0,100%_0,100%_100%,8px_100%,0_16px)]"
                 >
                     Clear All
                 </button>
@@ -221,41 +222,25 @@ const clearAllCommands = async () => {
                 <div
                     v-for="(command, index) in existingCommands"
                     :key="`existing-${command.name}-${index}`"
-                    class="group p-4 bg-purple-50 rounded-lg border border-purple-200 hover:border-purple-300 transition-all"
+                    class="group p-4 bg-neutral-800 text-neutral-200 hover:text-yellow-400 hover:bg-neutral-900 transition-colors [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-16px))]"
                 >
                     <div class="flex items-start justify-between">
                         <div class="flex-1">
                             <div class="flex items-center mb-2">
-                                <code class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm font-mono">
+                                <code class="px-2 py-1 bg-yellow-400 text-neutral-900 text-sm font-mono [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_16px)]">
                                     {{ command.name }}
                                 </code>
-                                <span class="ml-2 text-sm font-medium text-gray-900">
+                                <span class="ml-2 text-sm font-medium">
                                     {{ command.description }}
                                 </span>
                             </div>
-                            <p class="text-sm text-gray-600 mb-2">{{ command.response }}</p>
-                            <div class="flex space-x-2">
-                                <button
-                                    @click="editExistingCommand(command)"
-                                    :disabled="isLoading"
-                                    class="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100 px-2 py-1 rounded transition-colors disabled:opacity-50"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    @click="removeExistingCommand(command)"
-                                    :disabled="isLoading"
-                                    class="text-xs text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors disabled:opacity-50"
-                                >
-                                    Delete
-                                </button>
-                            </div>
+                            <p class="text-sm text-neutral-500 mb-2">{{ command.response }}</p>
                         </div>
-                        <div class="ml-4 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="ml-4 flex space-x-2">
                             <button
                                 @click="editExistingCommand(command)"
                                 :disabled="isLoading"
-                                class="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-100 rounded transition-colors disabled:opacity-50"
+                                class="p-1 text-neutral-200 hover:text-yellow-400 hover:bg-neutral-800 transition-colors disabled:opacity-50 [clip-path:polygon(0_0,100%_0,100%_100%,8px_100%,0_16px)]"
                                 title="Edit command"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,7 +250,7 @@ const clearAllCommands = async () => {
                             <button
                                 @click="removeExistingCommand(command)"
                                 :disabled="isLoading"
-                                class="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                class="p-1 text-rose-600 hover:text-rose-600 hover:bg-neutral-800 transition-colors disabled:opacity-50 [clip-path:polygon(0_0,100%_0,100%_100%,8px_100%,0_16px)]"
                                 title="Remove command"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,24 +264,29 @@ const clearAllCommands = async () => {
         </div>
 
         <!-- Empty State -->
-        <div v-else class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-            <div class="text-gray-400 mb-3">
-                <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div v-else class="bg-neutral-800 p-4 text-center [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]">
+            <div class="text-neutral-300 mb-3">
+                <svg class="mx-auto h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
             </div>
-            <h4 class="text-sm font-medium text-gray-900 mb-1">No Commands Yet</h4>
-            <p class="text-sm text-gray-500">Create your first custom command below</p>
+            <p class="text-sm font-medium text-neutral-300 mb-1">No Commands Yet</p>
+            <p class="text-xs text-neutral-400">Create your first custom command below</p>
         </div>
 
         <!-- Add New Command -->
-        <div class="border border-gray-200 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-gray-900 mb-4">➕ Add New Command</h4>
+        <div class="bg-neutral-800 p-4 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]">
+            <h4 class="font-medium text-yellow-400 mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Add New Command
+            </h4>
 
             <div class="space-y-4">
                 <!-- Command Name -->
                 <div>
-                    <label for="command-name" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="command-name" class="block text-sm font-medium text-neutral-400 mb-1">
                         Command Name
                     </label>
                     <input
@@ -304,23 +294,23 @@ const clearAllCommands = async () => {
                         v-model="newCommand.name"
                         @blur="formatCommandName"
                         type="text"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        class="w-full shadow-sm text-sm text-neutral-800 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]"
                         placeholder="/mycommand"
                         :disabled="isLoading"
                     >
-                    <p class="mt-1 text-xs text-gray-500">Must start with "/" (e.g., /weather, /help)</p>
+                    <p class="mt-1 text-xs text-neutral-400">Must start with "/" (e.g., /weather, /help)</p>
                 </div>
 
                 <!-- Description -->
                 <div>
-                    <label for="command-desc" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="command-desc" class="block text-sm font-medium text-neutral-400 mb-1">
                         Description
                     </label>
                     <input
                         id="command-desc"
                         v-model="newCommand.description"
                         type="text"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        class="w-full shadow-sm text-sm text-neutral-800 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]"
                         placeholder="Brief description of what this command does"
                         :disabled="isLoading"
                     >
@@ -328,14 +318,14 @@ const clearAllCommands = async () => {
 
                 <!-- Response Template -->
                 <div>
-                    <label for="command-response" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="command-response" class="block text-sm font-medium text-neutral-400 mb-1">
                         Response Template
                     </label>
                     <textarea
                         id="command-response"
                         v-model="newCommand.response"
                         rows="3"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        class="w-full shadow-sm text-sm text-neutral-800 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]"
                         placeholder="Define how the assistant should respond when this command is used..."
                         :disabled="isLoading"
                     ></textarea>
@@ -345,7 +335,7 @@ const clearAllCommands = async () => {
                 <button
                     @click="saveCommand(newCommand)"
                     :disabled="!isValidCommand || isLoading"
-                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="px-4 py-2 bg-cyan-700 text-sm text-white hover:bg-cyan-800 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]"
                 >
                     <span v-if="isLoading">Saving...</span>
                     <span v-else>{{ newCommand.name && existingCommands.find(c => c.name === newCommand.name) ? 'Update Command' : 'Add Command' }}</span>
@@ -355,29 +345,39 @@ const clearAllCommands = async () => {
 
         <!-- Predefined Commands -->
         <div>
-            <h4 class="text-sm font-medium text-gray-900 mb-3">🎯 Suggested Commands</h4>
+            <div class="text-md font-semibold text-yellow-400 mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Suggested Commands
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div
                     v-for="command in predefinedCommands"
                     :key="command.name"
-                    class="p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer"
+                    class="group p-3 bg-neutral-800 text-neutral-200 hover:text-neutral-900 hover:bg-yellow-400 transition-colors cursor-pointer [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_64px)]"
                     @click="saveCommand(command)"
                 >
                     <div class="flex items-center justify-between mb-2">
-                        <code class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-sm font-mono">
+                        <code class="px-2 py-1 bg-yellow-400 text-neutral-900 group-hover:bg-neutral-800 group-hover:text-yellow-400 text-sm font-mono transition-colors [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_16px)]">
                             {{ command.name }}
                         </code>
-                        <span class="text-xs text-blue-600">Click to add</span>
+                        <span class="text-xs text-yellow-400 group-hover:text-neutral-900">Click to add</span>
                     </div>
-                    <p class="text-sm text-gray-600">{{ command.description }}</p>
+                    <p class="text-sm text-neutral-500">{{ command.description }}</p>
                 </div>
             </div>
         </div>
 
         <!-- Usage Instructions -->
-        <div class="bg-yellow-50 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-yellow-900 mb-2">💡 How to Use Commands</h4>
-            <ul class="text-sm text-yellow-800 space-y-1">
+        <div class="bg-neutral-800 p-4 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-16px))]">
+            <div class="text-md font-semibold text-yellow-400 mb-2 flex items-center">
+                <svg class="w-6 h-6 mr-2 mb-1 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.477.859h4z"/>
+                </svg>
+                How to Use Commands
+            </div>
+            <ul class="text-sm text-yellow-400 space-y-1">
                 <li class="flex items-start">
                     <span class="mr-2 mt-0.5">•</span>
                     <span>Type your command in any conversation (e.g., "/weather Paris")</span>

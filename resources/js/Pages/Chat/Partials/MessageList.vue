@@ -28,15 +28,12 @@ const md = new MarkdownIt({
     }
 })
 
-// État pour suivre si l'animation typewriter est en cours
 const typingStates = ref(new Map())
 
-// Utiliser computed pour s'assurer de la réactivité
 const displayMessages = computed(() => {
     return props.messages || []
 })
 
-// Computed pour détecter le dernier message assistant
 const lastAssistantMessage = computed(() => {
     const messages = displayMessages.value
     if (messages.length === 0) return null
@@ -45,7 +42,6 @@ const lastAssistantMessage = computed(() => {
     return lastMessage && lastMessage.role === 'assistant' ? lastMessage : null
 })
 
-// Computed pour vérifier si on est en train de streamer OU de taper SEULEMENT pour le dernier message
 const isStreamingOrTyping = computed(() => {
     const lastMsg = lastAssistantMessage.value
     if (!lastMsg) return false
@@ -56,9 +52,8 @@ const isStreamingOrTyping = computed(() => {
     return isStreamingThisMessage || isTyping
 })
 
-// Fonction pour vérifier si un message spécifique doit avoir l'animation typewriter
+// Typewriter animation check
 const shouldAnimateMessage = (message) => {
-    // Seulement animer si c'est le dernier message assistant ET qu'il n'a pas encore été complètement affiché
     const isLast = message === lastAssistantMessage.value
     const isTyping = typingStates.value.get(message.id) || false
     const isStreamingThis = props.isStreaming && isLast
@@ -96,19 +91,19 @@ const formatTime = (dateString) => {
     })
 }
 
-// Watcher optimisé pour le scroll automatique
+// Watcher for automatic scroll
 watch(() => displayMessages.value, (newMessages, oldMessages) => {
     scrollToBottom()
 }, { deep: true, flush: 'post' })
 
-// Watcher spécifique pour le streaming
+// Watcher for streaming
 watch(() => props.isStreaming, (newValue) => {
     if (newValue) {
         scrollToBottom()
     }
 })
 
-// Watcher pour le contenu du dernier message pendant le streaming
+// Watcher for last message while streaming
 watch(() => lastAssistantMessage.value?.content, (newContent) => {
     if (props.isStreaming && newContent) {
         scrollToBottom()
@@ -122,7 +117,7 @@ onMounted(() => {
 
 <template>
     <div ref="messagesContainer" class="h-full overflow-y-auto p-4 space-y-4">
-        <div v-if="displayMessages.length === 0" class="text-center text-gray-500 mt-8">
+        <div v-if="displayMessages.length === 0" class="text-center text-neutral-200 mt-8">
             No messages yet. Start the conversation!
         </div>
 
@@ -136,32 +131,30 @@ onMounted(() => {
             }"
         >
             <!-- User Message -->
-            <div v-if="message.role === 'user'" class="max-w-3xl bg-blue-600 text-white rounded-lg px-4 py-2">
-                <div class="whitespace-pre-wrap text-white">
+            <div v-if="message.role === 'user'" class="max-w-3xl bg-yellow-400 text-stone-900 text-sm px-4 py-2 [clip-path:polygon(0_0,100%_0,100%_calc(100%-16px),calc(100%-18px)_100%,0_100%)] shadow-[inset_0_0_0_1px_#facc15]">
+                <div class="whitespace-pre-wrap text-stone-900">
                     {{ message.content }}
                 </div>
-                <div class="text-xs mt-1 text-right text-blue-100">
+                <div class="text-xs mt-1 text-right text-neutral-600">
                     {{ formatTime(message.created_at) }}
                 </div>
             </div>
 
             <!-- Assistant Message -->
-            <div v-else-if="message.role === 'assistant'" class="max-w-3xl bg-gray-100 text-gray-900 rounded-lg px-4 py-2">
-                <div class="prose prose-sm max-w-none prose-gray prose-pre:bg-gray-200 prose-pre:text-gray-800">
-                    <!-- Utiliser TypewriterText seulement pour le dernier message en cours -->
+            <div v-else-if="message.role === 'assistant'" class="max-w-3xl bg-neutral-200 text-neutral-900 px-4 py-2 [clip-path:polygon(0_0,100%_0,100%_100%,18px_100%,0_calc(100%-16px))]">
+                <div class="prose prose-sm max-w-none prose-gray prose-pre:bg-neutral-800 prose-pre:text-neutral-200">
                     <TypewriterText
                         v-if="shouldAnimateMessage(message)"
                         :text="renderMarkdown(message.content)"
-                        :speed="20"
+                        :speed="10"
                         :is-receiving="isStreaming && message === lastAssistantMessage"
                         @typing-complete="handleTypingComplete(message.id)"
                         @vue:mounted="handleTypingStart(message.id)"
                     />
-                    <!-- Affichage normal pour les autres messages -->
                     <div v-else v-html="renderMarkdown(message.content)"></div>
                 </div>
 
-                <!-- Indicateur de streaming/typing seulement pour le dernier message -->
+                <!-- Streaming/typing indicator -->
                 <div
                     v-if="isStreamingOrTyping && message === lastAssistantMessage"
                     class="flex items-center space-x-2 mt-2"
@@ -171,12 +164,12 @@ onMounted(() => {
                         <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
                         <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
                     </div>
-                    <span class="text-xs text-gray-500">
+                    <span class="text-xs text-neutral-600">
                         {{ isStreaming ? 'AI is responding...' : 'AI is typing...' }}
                     </span>
                 </div>
 
-                <div class="text-xs mt-1 text-left text-gray-500">
+                <div class="text-xs mt-1 text-left text-neutral-600">
                     {{ formatTime(message.created_at) }}
                 </div>
             </div>
@@ -199,7 +192,6 @@ onMounted(() => {
     transform: translateY(0);
 }
 
-/* Animation pour le contenu qui grandit */
 .content-grow {
     animation: contentGrow 0.2s ease-out;
 }

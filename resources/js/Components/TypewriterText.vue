@@ -5,7 +5,7 @@ const props = defineProps({
     text: String,
     speed: {
         type: Number,
-        default: 50 // millisecondes par caractère
+        default: 10
     },
     isReceiving: Boolean
 })

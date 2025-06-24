@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick, inject } from 'vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Sidebar from './Partials/Sidebar.vue'
 import ChatArea from './Partials/ChatArea.vue'
 import CustomInstructionsModal from './Partials/CustomInstructions/CustomInstructionsModal.vue'
 import { useChat } from '@/Composables/useChat'
+
+const sidebar = inject('sidebar')
 
 // Modal state
 const showInstructionsModal = ref(false)
@@ -49,6 +51,9 @@ watch(() => props.activeConversation, (newConversation) => {
 
 const openInstructionsModal = () => {
     showInstructionsModal.value = true
+    if (window.innerWidth < 768) {
+        sidebar.close()
+    }
 }
 
 const closeInstructionsModal = () => {
@@ -84,11 +89,22 @@ onMounted(() => {
     <AppLayout title="Chat">
         <div class="h-[calc(100vh-65px)] flex flex-col">
             <div class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-2 min-h-0">
-                <div class="bg-white overflow-hidden sm:rounded-2xl h-full w-full">
+                <div class="bg-zinc-900 overflow-hidden h-full w-full">
 
                     <div class="flex h-full w-full">
-                        <!-- Sidebar -->
-                        <div class="hidden md:flex md:w-90 border-r border-gray-200">
+                        <!-- Sidebar - Garde la logique originale pour desktop -->
+                        <div class="hidden md:flex min-w-[300px] w-[360px] max-w-[360px]">
+                            <Sidebar
+                                :conversations="conversations"
+                                :active-conversation="activeConversation"
+                                @select-conversation="setActiveConversation"
+                                @open-instructions="openInstructionsModal"
+                                @new-conversation="handleNewConversation"
+                            />
+                        </div>
+
+                        <!-- Sidebar Mobile - Séparée et positionnée en fixed -->
+                        <div class="md:hidden">
                             <Sidebar
                                 :conversations="conversations"
                                 :active-conversation="activeConversation"
@@ -99,13 +115,14 @@ onMounted(() => {
                         </div>
 
                         <!-- Chat Area -->
-                        <div class="flex-1 min-w-0 overflow-hidden">
+                        <div class="flex-1 min-w-0 overflow-hidden bg-neutral-800">
                             <ChatArea
                                 ref="chatAreaRef"
                                 :active-conversation="activeConversation"
                                 :messages="messages"
                                 :models="models"
                                 :selected-model="selectedModel"
+                                :user-instructions="props.userInstructions"
                                 @update-model="updateSelectedModel"
                                 @open-instructions="openInstructionsModal"
                             />
@@ -124,3 +141,4 @@ onMounted(() => {
         />
     </AppLayout>
 </template>
+
