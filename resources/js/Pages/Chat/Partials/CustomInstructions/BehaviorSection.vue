@@ -106,7 +106,7 @@ const saveChanges = async () => {
     isLoading.value = true
 
     try {
-        router.post(route('instructions.update'), {
+        router.post('/instructions/update', {
             type: 'behavior',
             data: behavior.value
         }, {
@@ -135,8 +135,9 @@ const deleteExisting = async () => {
     isLoading.value = true
 
     try {
-        router.delete(route('instructions.delete'), {
-            data: { type: 'behavior' },
+        router.post('/instructions/update', {
+            type: 'behavior'
+        }, {
             preserveState: true,
             onSuccess: (page) => {
                 existingBehavior.value = ''

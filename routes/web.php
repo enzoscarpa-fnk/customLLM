@@ -34,7 +34,5 @@ Route::middleware([
     // User Instructions Routes
     Route::post('/instructions', [UserInstructionController::class, 'store'])->name('instructions.store');
     Route::post('/instructions/update', [UserInstructionController::class, 'update'])->name('instructions.update');
-    Route::delete('/instructions', [UserInstructionController::class, 'delete'])->name('instructions.delete');
-    Route::delete('/instructions/command', [UserInstructionController::class, 'deleteCommand'])->name('instructions.deleteCommand');
     Route::post('/instructions/toggle', [UserInstructionController::class, 'toggle'])->name('instructions.toggle');
 });

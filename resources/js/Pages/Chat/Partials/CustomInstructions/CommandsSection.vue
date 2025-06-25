@@ -103,8 +103,13 @@ const removeExistingCommand = async (command) => {
     isLoading.value = true
 
     try {
-        router.delete(route('instructions.deleteCommand'), {
-            data: { command_name: command.name },
+        const currentCommands = [...(existingCommands.value || [])]
+        const filteredCommands = currentCommands.filter(cmd => cmd.name !== command.name)
+
+        router.post('/instructions/update', {
+            type: 'custom_commands',
+            data: filteredCommands,
+        }, {
             preserveState: true,
             onSuccess: (page) => {
                 emit('dataUpdated', page.props.userInstructions)
@@ -141,7 +146,7 @@ const saveCommand = async (command) => {
             currentCommands.push({ ...command })
         }
 
-        router.post(route('instructions.update'), {
+        router.post('/instructions/update', {
             type: 'custom_commands',
             data: currentCommands
         }, {
@@ -169,8 +174,10 @@ const clearAllCommands = async () => {
     isLoading.value = true
 
     try {
-        router.delete(route('instructions.delete'), {
-            data: { type: 'custom_commands' },
+        router.post('/instructions/update', {
+            type: 'custom_commands',
+            data: [],
+        }, {
             preserveState: true,
             onSuccess: (page) => {
                 commands.value = []
