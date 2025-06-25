@@ -7,7 +7,14 @@ import CustomInstructionsModal from './Partials/CustomInstructions/CustomInstruc
 import NotificationBanner from '@/Components/NotificationBanner.vue'
 import { useChat } from '@/Composables/useChat'
 
-const sidebar = inject('sidebar')
+const defaultSidebar = {
+    close: () => console.log('Sidebar close called'),
+    open: () => console.log('Sidebar open called'),
+    toggle: () => console.log('Sidebar toggle called'),
+    isOpen: ref(false)
+}
+
+const sidebar = inject('sidebar', defaultSidebar)
 
 // Modal state
 const showInstructionsModal = ref(false)
