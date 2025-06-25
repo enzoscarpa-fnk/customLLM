@@ -72,7 +72,7 @@ const logout = () => {
                         </div>
 
                         <!-- Logo -->
-                        <div class="flex flex-1 items-center justify-center md:justify-normal md:pl-3">
+                        <div class="flex flex-1 items-center justify-center md:justify-normal md:pl-4">
                             <ApplicationLogo class="block h-20 w-auto" />
                         </div>
 

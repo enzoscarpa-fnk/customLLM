@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
+import ConfirmationModal from '@/Components/ConfirmationModal.vue'
 import IconBehavior from '@/Components/icons/IconBehavior.vue';
 
 const props = defineProps({
@@ -15,6 +16,8 @@ const isEditing = ref(false)
 const isLoading = ref(false)
 
 const existingBehavior = ref('')
+
+const showDeleteConfirmation = ref(false)
 
 const presets = [
     {
@@ -130,11 +133,12 @@ const saveChanges = async () => {
     }
 }
 
-const deleteExisting = async () => {
-    if (!confirm('Are you sure you want to delete your behavior settings?')) {
-        return
-    }
+const deleteExisting = () => {
+    showDeleteConfirmation.value = true
+}
 
+const confirmDelete = async () => {
+    showDeleteConfirmation.value = false
     isLoading.value = true
 
     try {
@@ -160,6 +164,10 @@ const deleteExisting = async () => {
     } finally {
         isLoading.value = false
     }
+}
+
+const cancelDelete = () => {
+    showDeleteConfirmation.value = false
 }
 
 const cancelEdit = () => {
@@ -332,5 +340,37 @@ const cancelEdit = () => {
                 <p class="whitespace-pre-wrap">{{ behavior }}</p>
             </div>
         </div>
+
+        <!-- Confirmation modal -->
+        <ConfirmationModal
+            :show="showDeleteConfirmation"
+            @close="cancelDelete"
+            max-width="md"
+        >
+            <template #title>
+                Delete Behavior Settings
+            </template>
+
+            <template #content>
+                Are you sure you want to delete your behavior settings? This action cannot be undone.
+            </template>
+
+            <template #footer>
+                <button
+                    @click="cancelDelete"
+                    class="px-4 py-2 mr-3 text-sm font-medium text-neutral-200 bg-neutral-700 hover:bg-neutral-800 focus:outline-none transition-colors [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_26px)]"
+                >
+                    Keep
+                </button>
+                <button
+                    @click="confirmDelete"
+                    :disabled="isLoading"
+                    class="px-4 py-2 text-sm font-medium text-neutral-100 bg-pink-600 hover:bg-pink-700 focus:outline-none transition-colors [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_26px)]"
+                >
+                    <span v-if="isLoading">Deleting...</span>
+                    <span v-else>Delete</span>
+                </button>
+            </template>
+        </ConfirmationModal>
     </div>
 </template>

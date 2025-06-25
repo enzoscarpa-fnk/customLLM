@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
+import ConfirmationModal from '@/Components/ConfirmationModal.vue'
 import IconCommands from '@/Components/icons/IconCommands.vue';
 
 const props = defineProps({
@@ -14,6 +15,10 @@ const commands = ref(props.modelValue || [])
 const isLoading = ref(false)
 
 const existingCommands = ref(props.existingData?.custom_commands || [])
+
+const showDeleteCommandConfirmation = ref(false)
+const showClearAllConfirmation = ref(false)
+const commandToDelete = ref(null)
 
 // Watch for changes in existingData prop
 watch(() => props.existingData?.custom_commands, (newValue) => {
@@ -95,11 +100,15 @@ const editExistingCommand = (command) => {
     }, 100)
 }
 
-const removeExistingCommand = async (command) => {
-    if (!confirm(`Are you sure you want to delete the command "${command.name}"?`)) {
-        return
-    }
+const removeExistingCommand = (command) => {
+    commandToDelete.value = command
+    showDeleteCommandConfirmation.value = true
+}
 
+const confirmDeleteCommand = async (command) => {
+    if (!commandToDelete.value) return
+
+    showDeleteCommandConfirmation.value = false
     isLoading.value = true
 
     try {
@@ -128,7 +137,11 @@ const removeExistingCommand = async (command) => {
     }
 }
 
-// Fixed saveCommand method - properly merge instead of overwrite
+const cancelDeleteCommand = () => {
+    showDeleteCommandConfirmation.value = false
+    commandToDelete.value = null
+}
+
 const saveCommand = async (command) => {
     if (!command.name.startsWith('/') || !command.description.trim() || !command.response.trim()) {
         return
@@ -137,7 +150,6 @@ const saveCommand = async (command) => {
     isLoading.value = true
 
     try {
-        // Get current commands and properly merge
         const currentCommands = [...(existingCommands.value || [])]
         const existingIndex = currentCommands.findIndex(cmd => cmd.name === command.name)
         const isUpdate = existingIndex !== -1
@@ -174,11 +186,12 @@ const saveCommand = async (command) => {
     }
 }
 
-const clearAllCommands = async () => {
-    if (!confirm('Are you sure you want to delete all commands?')) {
-        return
-    }
+const clearAllCommands = () => {
+    showClearAllConfirmation.value = true
+}
 
+const confirmClearAll = async () => {
+    showClearAllConfirmation.value = false
     isLoading.value = true
 
     try {
@@ -203,6 +216,10 @@ const clearAllCommands = async () => {
     } finally {
         isLoading.value = false
     }
+}
+
+const cancelClearAll = () => {
+    showClearAllConfirmation.value = false
 }
 </script>
 
@@ -410,5 +427,69 @@ const clearAllCommands = async () => {
                 </li>
             </ul>
         </div>
+
+        <!-- Confirmation modal -->
+        <ConfirmationModal
+            :show="showDeleteCommandConfirmation"
+            @close="cancelDeleteCommand"
+            max-width="md"
+        >
+            <template #title>
+                Delete Command
+            </template>
+
+            <template #content>
+                Are you sure you want to delete the command <strong>"{{ commandToDelete?.name }}"</strong>? This action cannot be undone.
+            </template>
+
+            <template #footer>
+                <button
+                    @click="cancelDeleteCommand"
+                    class="px-4 py-2 mr-3 text-sm font-medium text-neutral-300 bg-neutral-700 hover:bg-neutral-600 focus:outline-none transition-colors [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_26px)]"
+                >
+                    Keep
+                </button>
+                <button
+                    @click="confirmDeleteCommand"
+                    :disabled="isLoading"
+                    class="px-4 py-2 text-sm font-medium text-neutral-100 bg-pink-600 hover:bg-pink-700 focus:outline-none transition-colors [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_26px)]"
+                >
+                    <span v-if="isLoading">Deleting...</span>
+                    <span v-else>Delete</span>
+                </button>
+            </template>
+        </ConfirmationModal>
+
+        <!-- Confirmation modal (all) -->
+        <ConfirmationModal
+            :show="showClearAllConfirmation"
+            @close="cancelClearAll"
+            max-width="md"
+        >
+            <template #title>
+                Delete All Commands
+            </template>
+
+            <template #content>
+                Are you sure you want to delete all your custom commands? This action cannot be undone.
+            </template>
+
+            <template #footer>
+                <button
+                    @click="cancelClearAll"
+                    class="px-4 py-2 mr-3 text-sm font-medium text-neutral-300 bg-neutral-700 hover:bg-neutral-600 focus:outline-none transition-colors [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_26px)]"
+                >
+                    Keep All
+                </button>
+                <button
+                    @click="confirmClearAll"
+                    :disabled="isLoading"
+                    class="px-4 py-2 text-sm font-medium text-neutral-100 bg-pink-600 hover:bg-pink-700 focus:outline-none transition-colors [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_26px)]"
+                >
+                    <span v-if="isLoading">Deleting...</span>
+                    <span v-else>Delete All</span>
+                </button>
+            </template>
+        </ConfirmationModal>
     </div>
 </template>
