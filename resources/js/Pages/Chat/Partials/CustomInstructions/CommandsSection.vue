@@ -8,7 +8,7 @@ const props = defineProps({
     existingData: Object
 })
 
-const emit = defineEmits(['update:modelValue', 'dataUpdated'])
+const emit = defineEmits(['update:modelValue', 'dataUpdated', 'show-success', 'show-error'])
 
 const commands = ref(props.modelValue || [])
 const isLoading = ref(false)
@@ -113,13 +113,16 @@ const removeExistingCommand = async (command) => {
             preserveState: true,
             onSuccess: (page) => {
                 emit('dataUpdated', page.props.userInstructions)
+                emit('show-success', `Command "${command.name}" deleted successfully!`)
             },
             onError: (errors) => {
                 console.error('Error deleting command:', errors)
+                emit('show-error', 'Failed to delete command. Please try again.')
             }
         })
     } catch (error) {
         console.error('Error deleting command:', error)
+        emit('show-error', 'An error occurred while deleting the command.')
     } finally {
         isLoading.value = false
     }
@@ -137,12 +140,11 @@ const saveCommand = async (command) => {
         // Get current commands and properly merge
         const currentCommands = [...(existingCommands.value || [])]
         const existingIndex = currentCommands.findIndex(cmd => cmd.name === command.name)
+        const isUpdate = existingIndex !== -1
 
-        if (existingIndex !== -1) {
-            // Update existing command
+        if (isUpdate) {
             currentCommands[existingIndex] = { ...command }
         } else {
-            // Add new command
             currentCommands.push({ ...command })
         }
 
@@ -154,13 +156,19 @@ const saveCommand = async (command) => {
             onSuccess: (page) => {
                 emit('dataUpdated', page.props.userInstructions)
                 resetNewCommand()
+                const message = isUpdate
+                    ? `Command "${command.name}" updated successfully!`
+                    : `Command "${command.name}" added successfully!`
+                emit('show-success', message)
             },
             onError: (errors) => {
                 console.error('Error saving command:', errors)
+                emit('show-error', 'Failed to save command. Please try again.')
             }
         })
     } catch (error) {
         console.error('Error saving command:', error)
+        emit('show-error', 'An error occurred while saving the command.')
     } finally {
         isLoading.value = false
     }
@@ -182,13 +190,16 @@ const clearAllCommands = async () => {
             onSuccess: (page) => {
                 commands.value = []
                 emit('dataUpdated', page.props.userInstructions)
+                emit('show-success', 'All commands deleted successfully!')
             },
             onError: (errors) => {
                 console.error('Error clearing commands:', errors)
+                emit('show-error', 'Failed to delete all commands. Please try again.')
             }
         })
     } catch (error) {
         console.error('Error clearing commands:', error)
+        emit('show-error', 'An error occurred while deleting all commands.')
     } finally {
         isLoading.value = false
     }

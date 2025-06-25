@@ -8,7 +8,7 @@ const props = defineProps({
     existingData: Object
 })
 
-const emit = defineEmits(['update:modelValue', 'dataUpdated'])
+const emit = defineEmits(['update:modelValue', 'dataUpdated', 'show-success', 'show-error'])
 
 const aboutYou = ref(props.modelValue || '')
 const isEditing = ref(false)
@@ -84,13 +84,16 @@ const saveChanges = async () => {
                 existingAboutYou.value = aboutYou.value
                 isEditing.value = false
                 emit('dataUpdated', page.props.userInstructions)
+                emit('show-success', 'Personal information updated successfully!')
             },
             onError: (errors) => {
                 console.error('Error saving changes:', errors)
+                emit('show-error', 'Failed to save changes. Please try again.')
             }
         })
     } catch (error) {
         console.error('Error saving changes:', error)
+        emit('show-error', 'An error occurred while saving.')
     } finally {
         isLoading.value = false
     }
@@ -113,13 +116,16 @@ const deleteExisting = async () => {
                 aboutYou.value = ''
                 isEditing.value = false
                 emit('dataUpdated', page.props.userInstructions)
+                emit('show-success', 'Personal information deleted successfully!')
             },
             onError: (errors) => {
                 console.error('Error deleting:', errors)
+                emit('show-error', 'Failed to delete information. Please try again.')
             }
         })
     } catch (error) {
         console.error('Error deleting:', error)
+        emit('show-error', 'An error occurred while deleting.')
     } finally {
         isLoading.value = false
     }
