@@ -4,12 +4,30 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import Sidebar from './Partials/Sidebar.vue'
 import ChatArea from './Partials/ChatArea.vue'
 import CustomInstructionsModal from './Partials/CustomInstructions/CustomInstructionsModal.vue'
+import NotificationBanner from '@/Components/NotificationBanner.vue'
 import { useChat } from '@/Composables/useChat'
 
 const sidebar = inject('sidebar')
 
 // Modal state
 const showInstructionsModal = ref(false)
+const notification = ref({
+    show: false,
+    type: 'success',
+    message: ''
+})
+
+const showNotification = (data) => {
+    notification.value = {
+        show: true,
+        type: data.type,
+        message: data.message
+    }
+}
+
+const closeNotification = () => {
+    notification.value.show = false
+}
 
 const {
     conversations,
@@ -58,10 +76,6 @@ const openInstructionsModal = () => {
 
 const closeInstructionsModal = () => {
     showInstructionsModal.value = false
-}
-
-const handleInstructionsSaved = () => {
-    window.location.reload()
 }
 
 onMounted(() => {
@@ -132,12 +146,20 @@ onMounted(() => {
             </div>
         </div>
 
+        <!-- Notification Banner -->
+        <NotificationBanner
+            :show="notification.show"
+            :type="notification.type"
+            :message="notification.message"
+            @close="closeNotification"
+        />
+
         <!-- Custom Instructions Modal -->
         <CustomInstructionsModal
             :show="showInstructionsModal"
             :user-instructions="props.userInstructions"
             @close="closeInstructionsModal"
-            @saved="handleInstructionsSaved"
+            @show-notification="showNotification"
         />
     </AppLayout>
 </template>

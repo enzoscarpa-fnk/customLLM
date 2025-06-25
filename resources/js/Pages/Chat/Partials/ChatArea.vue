@@ -23,7 +23,6 @@ const state = reactive({
 
 const messageInputRef = ref(null)
 
-// Utiliser le nouveau composable de streaming
 const { initStream, isStreaming, cleanup } = useStreamChat()
 const streamController = ref(null)
 
@@ -44,11 +43,9 @@ const initializeStream = () => {
             }
         },
         onConversationCreated: (conversationId) => {
-            // Rediriger vers la nouvelle conversation
             window.location.href = `/chat/${conversationId}`
         },
         onFinish: () => {
-            // Plus besoin de rechargement ici
         },
         onError: (error) => {
             if (state.messages.length > 0) {
@@ -103,7 +100,6 @@ const handleMessageSent = async (messageData) => {
         state.isCreatingConversation = true
     }
 
-    // 1. Ajouter le message utilisateur
     const userMessage = {
         id: 'temp-user-' + Date.now(),
         role: 'user',
@@ -112,7 +108,6 @@ const handleMessageSent = async (messageData) => {
     }
     state.messages.push(userMessage)
 
-    // 2. Ajouter un message vide pour l'assistant
     const assistantMessage = {
         id: 'temp-assistant-' + Date.now(),
         role: 'assistant',
@@ -121,14 +116,12 @@ const handleMessageSent = async (messageData) => {
     }
     state.messages.push(assistantMessage)
 
-    // 3. Envoyer via le stream
     const success = await sendStreamMessage({
         message: messageData.message,
         model: messageData.model,
     })
 
     if (!success) {
-        // Supprimer les messages temporaires en cas d'échec
         state.messages.pop() // assistant message
         state.messages.pop() // user message
     }

@@ -47,7 +47,7 @@ class UserInstructionController extends Controller
     {
         $request->validate([
             'type' => 'required|in:about_you,behavior,custom_commands',
-            'data' => 'required'
+            'data' => 'nullable'
         ]);
 
         $user = Auth::user();
@@ -65,19 +65,26 @@ class UserInstructionController extends Controller
         // Validate the data based on type
         if ($request->type === 'about_you' || $request->type === 'behavior') {
             $request->validate([
-                'data' => 'string|max:2000'
+                'data' => 'nullable|string|max:2000'
             ]);
         } elseif ($request->type === 'custom_commands') {
             $request->validate([
-                'data' => 'array',
+                'data' => 'nullable|array',
                 'data.*.name' => 'required|string|starts_with:/',
                 'data.*.description' => 'required|string|max:200',
                 'data.*.response' => 'required|string|max:500'
             ]);
         }
 
+        $dataToUpdate = $request->data;
+        if ($request->type === 'custom_commands' && is_null($dataToUpdate)) {
+            $dataToUpdate = [];
+        } elseif (($request->type === 'about_you' || $request->type === 'behavior') && is_null($dataToUpdate)) {
+            $dataToUpdate = '';
+        }
+
         $instructions->update([
-            $request->type => $request->data
+            $request->type => $dataToUpdate
         ]);
 
         // Get fresh instructions data
@@ -97,111 +104,6 @@ class UserInstructionController extends Controller
 
         return redirect()->back()
             ->with('message', 'Instruction updated successfully')
-            ->with('userInstructions', $updatedInstructions);
-    }
-
-    /**
-     * Delete specific instruction type
-     */
-    public function delete(Request $request)
-    {
-        $request->validate([
-            'type' => 'required|in:about_you,behavior,custom_commands'
-        ]);
-
-        $user = Auth::user();
-        $instructions = $user->instructions;
-
-        if (!$instructions) {
-            $updatedInstructions = $user->getInstructionsOrDefault();
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'No instructions to delete',
-                    'instructions' => $updatedInstructions
-                ]);
-            }
-            return redirect()->back()
-                ->with('message', 'No instructions to delete')
-                ->with('userInstructions', $updatedInstructions);
-        }
-
-        if ($request->type === 'custom_commands') {
-            $instructions->update(['custom_commands' => []]);
-        } else {
-            $instructions->update([$request->type => '']);
-        }
-
-        // Get fresh instructions data
-        $user->refresh();
-        $updatedInstructions = $user->getInstructionsOrDefault();
-
-        Log::info('UserInstructionController delete - Updated instructions:', $updatedInstructions);
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Instruction deleted successfully',
-                'instructions' => $updatedInstructions
-            ]);
-        }
-
-        return redirect()->back()
-            ->with('message', 'Instruction deleted successfully')
-            ->with('userInstructions', $updatedInstructions);
-    }
-
-    /**
-     * Delete specific custom command
-     */
-    public function deleteCommand(Request $request)
-    {
-        $request->validate([
-            'command_name' => 'required|string'
-        ]);
-
-        $user = Auth::user();
-        $instructions = $user->instructions;
-
-        if (!$instructions) {
-            $updatedInstructions = $user->getInstructionsOrDefault();
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'No commands to delete',
-                    'instructions' => $updatedInstructions
-                ]);
-            }
-            return redirect()->back()
-                ->with('message', 'No commands to delete')
-                ->with('userInstructions', $updatedInstructions);
-        }
-
-        $commands = $instructions->custom_commands ?? [];
-        $commands = array_filter($commands, function($command) use ($request) {
-            return $command['name'] !== $request->command_name;
-        });
-
-        $instructions->update(['custom_commands' => array_values($commands)]);
-
-        // Get fresh instructions data
-        $user->refresh();
-        $updatedInstructions = $user->getInstructionsOrDefault();
-
-        Log::info('UserInstructionController deleteCommand - Updated instructions:', $updatedInstructions);
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Command deleted successfully',
-                'instructions' => $updatedInstructions
-            ]);
-        }
-
-        return redirect()->back()
-            ->with('message', 'Command deleted successfully')
             ->with('userInstructions', $updatedInstructions);
     }
 

@@ -14,7 +14,7 @@ const props = defineProps({
     userInstructions: Object
 })
 
-const emit = defineEmits(['close', 'saved'])
+const emit = defineEmits(['close', 'saved', 'show-notification'])
 
 const userInstructionsData = ref({})
 
@@ -72,7 +72,7 @@ const save = () => {
         preserveState: true,
         onSuccess: () => {
             emit('saved')
-            emit('close')
+            showSuccessNotification('All instructions saved successfully!')
         },
         onError: (errors) => {
             console.error('Save errors:', errors)
@@ -90,6 +90,7 @@ const toggleEnabled = async (event) => {
             onSuccess: (page) => {
                 userInstructionsData.value = page.props.userInstructions || {}
                 emit('saved')
+                showSuccessNotification(`Instructions ${form.enabled ? 'enabled' : 'disabled'}!`)
             }
         })
     } catch (error) {
@@ -120,6 +121,10 @@ watch(() => props.show, (newShow) => {
     }
 })
 
+const showSuccessNotification = (message) => {
+    emit('show-notification', { type: 'success', message })
+}
+
 // Watch for userInstructions prop changes
 watch(() => props.userInstructions, (newInstructions) => {
     if (newInstructions) {
@@ -133,7 +138,6 @@ watch(() => props.userInstructions, (newInstructions) => {
     <div
         v-if="show"
         class="fixed inset-0 z-50 overflow-y-auto"
-        @click="closeModal"
     >
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <!-- Background overlay -->
@@ -209,18 +213,24 @@ watch(() => props.userInstructions, (newInstructions) => {
                         v-model="form.about_you"
                         :existing-data="userInstructionsData"
                         @data-updated="handleDataUpdated"
+                        @show-success="(message) => emit('show-notification', { type: 'success', message })"
+                        @show-error="(message) => emit('show-notification', { type: 'error', message })"
                     />
                     <BehaviorSection
                         v-if="activeTab === 'behavior'"
                         v-model="form.behavior"
                         :existing-data="userInstructionsData"
                         @data-updated="handleDataUpdated"
+                        @show-success="(message) => emit('show-notification', { type: 'success', message })"
+                        @show-error="(message) => emit('show-notification', { type: 'error', message })"
                     />
                     <CommandsSection
                         v-if="activeTab === 'commands'"
                         v-model="form.custom_commands"
                         :existing-data="userInstructionsData"
                         @data-updated="handleDataUpdated"
+                        @show-success="(message) => emit('show-notification', { type: 'success', message })"
+                        @show-error="(message) => emit('show-notification', { type: 'error', message })"
                     />
                 </div>
 

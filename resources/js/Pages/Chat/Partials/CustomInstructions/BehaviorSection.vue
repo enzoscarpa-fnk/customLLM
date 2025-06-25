@@ -8,7 +8,7 @@ const props = defineProps({
     existingData: Object
 })
 
-const emit = defineEmits(['update:modelValue', 'dataUpdated'])
+const emit = defineEmits(['update:modelValue', 'dataUpdated', 'show-success', 'show-error'])
 
 const behavior = ref(props.modelValue || '')
 const isEditing = ref(false)
@@ -106,7 +106,7 @@ const saveChanges = async () => {
     isLoading.value = true
 
     try {
-        router.post(route('instructions.update'), {
+        router.post('/instructions/update', {
             type: 'behavior',
             data: behavior.value
         }, {
@@ -115,13 +115,16 @@ const saveChanges = async () => {
                 existingBehavior.value = behavior.value
                 isEditing.value = false
                 emit('dataUpdated', page.props.userInstructions)
+                emit('show-success', 'Behavior settings updated successfully!')
             },
             onError: (errors) => {
                 console.error('Error saving changes:', errors)
+                emit('show-error', 'Failed to save behavior settings. Please try again.')
             }
         })
     } catch (error) {
         console.error('Error saving changes:', error)
+        emit('show-error', 'An error occurred while saving behavior settings.')
     } finally {
         isLoading.value = false
     }
@@ -135,21 +138,25 @@ const deleteExisting = async () => {
     isLoading.value = true
 
     try {
-        router.delete(route('instructions.delete'), {
-            data: { type: 'behavior' },
+        router.post('/instructions/update', {
+            type: 'behavior'
+        }, {
             preserveState: true,
             onSuccess: (page) => {
                 existingBehavior.value = ''
                 behavior.value = ''
                 isEditing.value = false
                 emit('dataUpdated', page.props.userInstructions)
+                emit('show-success', 'Behavior settings deleted successfully!')
             },
             onError: (errors) => {
                 console.error('Error deleting:', errors)
+                emit('show-error', 'Failed to delete behavior settings. Please try again.')
             }
         })
     } catch (error) {
         console.error('Error deleting:', error)
+        emit('show-error', 'An error occurred while deleting behavior settings.')
     } finally {
         isLoading.value = false
     }

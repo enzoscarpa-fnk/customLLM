@@ -8,7 +8,7 @@ const props = defineProps({
     existingData: Object
 })
 
-const emit = defineEmits(['update:modelValue', 'dataUpdated'])
+const emit = defineEmits(['update:modelValue', 'dataUpdated', 'show-success', 'show-error'])
 
 const aboutYou = ref(props.modelValue || '')
 const isEditing = ref(false)
@@ -29,8 +29,6 @@ const suggestions = [
     "Mention your knowledge level on certain topics to adjust explanation complexity",
     "Include your preferred communication style and learning preferences"
 ]
-
-const route = usePage().props.route;
 
 // Initialize existing data
 const initializeExistingData = () => {
@@ -77,7 +75,7 @@ const saveChanges = async () => {
     isLoading.value = true
 
     try {
-        router.post(route('instructions.update'), {
+        router.post('/instructions/update', {
             type: 'about_you',
             data: aboutYou.value
         }, {
@@ -86,13 +84,16 @@ const saveChanges = async () => {
                 existingAboutYou.value = aboutYou.value
                 isEditing.value = false
                 emit('dataUpdated', page.props.userInstructions)
+                emit('show-success', 'Personal information updated successfully!')
             },
             onError: (errors) => {
                 console.error('Error saving changes:', errors)
+                emit('show-error', 'Failed to save changes. Please try again.')
             }
         })
     } catch (error) {
         console.error('Error saving changes:', error)
+        emit('show-error', 'An error occurred while saving.')
     } finally {
         isLoading.value = false
     }
@@ -106,21 +107,25 @@ const deleteExisting = async () => {
     isLoading.value = true
 
     try {
-        router.delete(route('instructions.delete'), {
-            data: { type: 'about_you' },
+        router.post('/instructions/update', {
+            type: 'about_you'
+        }, {
             preserveState: true,
             onSuccess: (page) => {
                 existingAboutYou.value = ''
                 aboutYou.value = ''
                 isEditing.value = false
                 emit('dataUpdated', page.props.userInstructions)
+                emit('show-success', 'Personal information deleted successfully!')
             },
             onError: (errors) => {
                 console.error('Error deleting:', errors)
+                emit('show-error', 'Failed to delete information. Please try again.')
             }
         })
     } catch (error) {
         console.error('Error deleting:', error)
+        emit('show-error', 'An error occurred while deleting.')
     } finally {
         isLoading.value = false
     }
@@ -185,14 +190,14 @@ const cancelEdit = () => {
         </div>
 
         <!-- Empty State for Current Description -->
-        <div v-else-if="!existingAboutYou || !existingAboutYou.trim()" class="bg-gray-50 border border-gray-200 p-4 text-center">
-            <div class="text-gray-400 mb-2">
+        <div v-else-if="!existingAboutYou || !existingAboutYou.trim()" class="bg-neutral-800 p-4 text-center [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-14px))]">
+            <div class="text-neutral-300 mb-2">
                 <svg class="mx-auto h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                 </svg>
             </div>
-            <p class="text-sm text-gray-500">No description configured yet</p>
-            <p class="text-xs text-gray-400 mt-1">Add information about yourself below</p>
+            <p class="text-sm text-neutral-300">No description configured yet</p>
+            <p class="text-xs text-neutral-400 mt-1">Add information about yourself below</p>
         </div>
 
         <!-- Edit/Add Section -->
