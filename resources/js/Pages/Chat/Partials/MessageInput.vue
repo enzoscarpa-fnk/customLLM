@@ -120,7 +120,7 @@ onMounted(() => {
             <select
                 v-model="form.model"
                 @change="updateModel(form.model)"
-                class="w-full sm:w-auto appearance-none bg-yellow-400 text-neutral-900 px-4 py-2 pr-8 focus:border-yellow-400 focus:outline-none [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-13px))]"
+                class="w-full 2xl:w-auto appearance-none bg-yellow-400 text-neutral-900 px-4 py-2 pr-8 focus:border-yellow-400 focus:outline-none [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-13px))]"
                 :disabled="isStreaming"
             >
                 <option value="" disabled>Select a model</option>
@@ -150,7 +150,7 @@ onMounted(() => {
             <button
                 type="submit"
                 :disabled="isStreaming"
-                class="[clip-path:polygon(50%_0,100%_50%,50%_100%,0_50%)] absolute bottom-8 right-2 inline-flex items-center p-2 bg-neutral-800 border border-transparent rounded-md font-semibold text-neutral-200  hover:text-yellow-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                class="[clip-path:polygon(50%_0,100%_50%,50%_100%,0_50%)] absolute bottom-4 right-2 inline-flex items-center p-2 bg-neutral-700 hover:bg-neutral-800 border border-transparent rounded-md font-semibold text-neutral-200  hover:text-yellow-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <svg v-if="isStreaming" class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

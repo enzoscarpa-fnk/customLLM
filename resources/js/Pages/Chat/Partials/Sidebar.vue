@@ -1,6 +1,7 @@
 <script setup>
 import { ref, inject } from 'vue'
 import { router } from '@inertiajs/vue3'
+import ConfirmationModal from '@/Components/ConfirmationModal.vue'
 
 const props = defineProps({
     conversations: Array,
@@ -8,6 +9,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['selectConversation', 'openInstructions', 'newConversation'])
+
+const showDeleteConfirmation = ref(false)
+const conversationToDelete = ref(null)
 
 const sidebar = inject('sidebar')
 
@@ -47,19 +51,33 @@ const openInstructions = () => {
 const deleteConversation = (conversation, event) => {
     event.stopPropagation()
 
-    if (confirm('Are you sure you want to delete this conversation?')) {
-        router.delete(`/chat/${conversation.id}`, {
-            preserveState: false, // This will refresh the page data
-            onSuccess: () => {
-                console.log('Conversation deleted successfully')
-            },
-            onError: (errors) => {
-                console.error('Error deleting conversation:', errors)
-                alert('Failed to delete conversation. Please try again.')
-            }
-        })
-    }
+    conversationToDelete.value = conversation
+    showDeleteConfirmation.value = true
 }
+
+const confirmDelete = () => {
+    if (!conversationToDelete.value) return
+
+    showDeleteConfirmation.value = false
+
+    router.delete(`/chat/${conversationToDelete.value.id}`, {
+        preserveState: false,
+        onSuccess: () => {
+            console.log('Conversation deleted successfully')
+            conversationToDelete.value = null
+        },
+        onError: (errors) => {
+            console.error('Error deleting conversation:', errors)
+            alert('Failed to delete conversation. Please try again.')
+        }
+    })
+}
+
+const cancelDelete = () => {
+    showDeleteConfirmation.value = false
+    conversationToDelete.value = null
+}
+
 </script>
 
 <template>
@@ -72,7 +90,7 @@ const deleteConversation = (conversation, event) => {
     >
         <!-- Header -->
         <div class="p-4 border-b-2 border-r-2 border-yellow-400 bg-neutral-900">
-            <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center justify-between mb-3 pl-1">
                 <h2 class="text-lg font-semibold">Conversations</h2>
 
                 <button
@@ -102,7 +120,7 @@ const deleteConversation = (conversation, event) => {
             <!-- Settings Button -->
             <button
                 @click="openInstructions"
-                class="w-[280px] flex items-center ml-2 px-6 py-2 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_22px)] text-sm hover:bg-yellow-400 hover:text-stone-900 transition-colors"
+                class="w-[280px] flex items-center ml-2 px-6 py-2 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_22px)] text-sm text-yellow-400 hover:bg-yellow-400 hover:text-stone-900 transition-colors"
             >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -157,4 +175,34 @@ const deleteConversation = (conversation, event) => {
             </div>
         </div>
     </div>
+
+    <!-- Confirmation modal -->
+    <ConfirmationModal
+        :show="showDeleteConfirmation"
+        @close="cancelDelete"
+        max-width="md"
+    >
+        <template #title>
+            Delete Conversation
+        </template>
+
+        <template #content>
+            Are you sure you want to delete this conversation? This action cannot be undone.
+        </template>
+
+        <template #footer>
+            <button
+                @click="cancelDelete"
+                class="px-4 py-2 mr-3 text-sm font-medium text-neutral-200 bg-neutral-700 hover:bg-neutral-800 focus:outline-none transition-colors [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_26px)]"
+            >
+                Cancel
+            </button>
+            <button
+                @click="confirmDelete"
+                class="px-4 py-2 text-sm font-medium text-neutral-100 bg-pink-600 hover:bg-pink-700 focus:outline-none transition-colors [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_26px)]"
+            >
+                Delete
+            </button>
+        </template>
+    </ConfirmationModal>
 </template>

@@ -72,7 +72,7 @@ const logout = () => {
                         </div>
 
                         <!-- Logo -->
-                        <div class="flex items-center justify-center flex-1">
+                        <div class="flex flex-1 items-center justify-center md:justify-normal md:pl-4">
                             <ApplicationLogo class="block h-20 w-auto" />
                         </div>
 
@@ -137,7 +137,7 @@ const logout = () => {
                             </div>
 
                             <!-- Settings Dropdown -->
-                            <div class="ms-3 relative">
+                            <div class="ms-3 pr-2 relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
                                         <button v-if="$page.props.jetstream.managesProfilePhotos" class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition">
@@ -145,7 +145,7 @@ const logout = () => {
                                         </button>
 
                                         <span v-else class="inline-flex">
-                                            <button type="button" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium text-neutral-800 bg-neutral-200 hover:text-yellow-400 hover:bg-neutral-800 focus:outline-none transition ease-in-out duration-150 [clip-path:polygon(0_0,100%_0,100%_100%,12px_100%,0_20px)]">
+                                            <button type="button" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium text-neutral-800 bg-neutral-200 hover:text-yellow-400 hover:bg-neutral-800 focus:outline-none transition ease-in-out duration-150 [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-13px))]">
                                                 {{ $page.props.auth.user.name }}
 
                                                 <svg class="ms-2 -me-0.5 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -157,7 +157,7 @@ const logout = () => {
 
                                     <template #content>
                                         <!-- Account Management -->
-                                        <div class="block px-4 py-2 text-xs text-gray-400">
+                                        <div class="block px-4 py-2 text-xs text-yellow-400">
                                             Manage Account
                                         </div>
 
@@ -169,7 +169,7 @@ const logout = () => {
                                             API Tokens
                                         </DropdownLink>
 
-                                        <div class="border-t border-gray-200" />
+                                        <div class="border-t-2 border-yellow-400" />
 
                                         <!-- Authentication -->
                                         <form @submit.prevent="logout">
