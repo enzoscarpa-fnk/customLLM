@@ -72,7 +72,7 @@ const logout = () => {
                         </div>
 
                         <!-- Logo -->
-                        <div class="flex items-center justify-center flex-1">
+                        <div class="flex flex-1 items-center justify-center md:justify-normal md:pl-3">
                             <ApplicationLogo class="block h-20 w-auto" />
                         </div>
 
@@ -137,7 +137,7 @@ const logout = () => {
                             </div>
 
                             <!-- Settings Dropdown -->
-                            <div class="ms-3 relative">
+                            <div class="ms-3 pr-2 relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
                                         <button v-if="$page.props.jetstream.managesProfilePhotos" class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition">

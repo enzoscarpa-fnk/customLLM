@@ -87,7 +87,7 @@ const getIcon = () => {
             class="fixed top-0 left-0 right-0 z-[60] shadow-lg"
         >
             <div :class="getTypeClasses()">
-                <div class="flex items-center justify-between max-w-7xl mx-auto">
+                <div class="flex items-center justify-between max-w-4xl px-6 mx-auto">
                     <div class="flex items-center">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getIcon()"></path>

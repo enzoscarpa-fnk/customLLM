@@ -120,7 +120,7 @@ onMounted(() => {
             <select
                 v-model="form.model"
                 @change="updateModel(form.model)"
-                class="w-full sm:w-auto appearance-none bg-yellow-400 text-neutral-900 px-4 py-2 pr-8 focus:border-yellow-400 focus:outline-none [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-13px))]"
+                class="w-full 2xl:w-auto appearance-none bg-yellow-400 text-neutral-900 px-4 py-2 pr-8 focus:border-yellow-400 focus:outline-none [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-13px))]"
                 :disabled="isStreaming"
             >
                 <option value="" disabled>Select a model</option>
