@@ -12,7 +12,7 @@ const props = defineProps({
     },
     contentClasses: {
         type: Array,
-        default: () => ['py-1', 'bg-white'],
+        default: () => ['py-1', 'bg-neutral-700', ' [clip-path:polygon(0_0,100%_0,100%_100%,15px_100%,0_calc(100%-13px))]'],
     },
 });
 
@@ -70,7 +70,7 @@ const alignmentClasses = computed(() => {
                 style="display: none;"
                 @click="open = false"
             >
-                <div class="rounded-md ring-1 ring-black ring-opacity-5" :class="contentClasses">
+                <div class="" :class="contentClasses">
                     <slot name="content" />
                 </div>
             </div>
