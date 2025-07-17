@@ -91,9 +91,6 @@ class UserInstructionController extends Controller
         $user->refresh();
         $updatedInstructions = $user->getInstructionsOrDefault();
 
-        // Log for debugging
-        Log::info('UserInstructionController update - Updated instructions:', $updatedInstructions);
-
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -133,8 +130,6 @@ class UserInstructionController extends Controller
         // Get fresh instructions data
         $user->refresh();
         $updatedInstructions = $user->getInstructionsOrDefault();
-
-        Log::info('UserInstructionController toggle - Updated instructions:', $updatedInstructions);
 
         if ($request->expectsJson()) {
             return response()->json([

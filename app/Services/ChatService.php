@@ -74,7 +74,7 @@ class ChatService
         if ($userInstructions && $userInstructions->enabled) {
             $customInstructions = $userInstructions->formatted_instructions;
             if ($customInstructions) {
-                $basePrompt .= "\n\nInstructions personnalisées:\n" . $customInstructions;
+                $basePrompt .= "\n\nCustom Instructions:\n" . $customInstructions;
             }
         }
 
@@ -144,10 +144,9 @@ class ChatService
             if ($message['role'] === 'user') {
                 $content = $message['content'];
 
-                // Chercher des commandes dans le message
+                // Look for command in message
                 foreach ($commands as $command) {
                     if (str_starts_with(trim($content), $command['name'])) {
-                        // Remplacer la commande par sa réponse
                         $commandText = $command['name'];
                         $parameters = trim(str_replace($commandText, '', $content));
 

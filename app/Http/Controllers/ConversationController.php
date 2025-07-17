@@ -38,11 +38,6 @@ class ConversationController extends Controller
         // Get user instructions with detailed logging
         $userInstructions = $user->getInstructionsOrDefault();
 
-        // Debug logging
-        \Log::info('ConversationController index - User ID:', ['user_id' => $user->id]);
-        \Log::info('ConversationController index - Raw instructions from DB:', ['instructions' => $user->instructions]);
-        \Log::info('ConversationController index - Processed userInstructions:', ['userInstructions' => $userInstructions]);
-
         return Inertia::render('Chat/Index', [
             'conversations' => $conversations,
             'activeConversation' => $activeConversation,
@@ -259,7 +254,6 @@ class ConversationController extends Controller
 
         $response = response()->stream(function () use ($conversation, $messages, $request) {
             $fullResponse = '';
-            \Log::info('🚀 Début du streaming');
 
             try {
                 $stream = $this->chatService->stream(
@@ -271,13 +265,10 @@ class ConversationController extends Controller
                     $content = $response->choices[0]->delta->content ?? '';
                     $fullResponse .= $content;
 
-                    \Log::info('📤 Envoi de contenu:', ['content' => $content]);
                     echo $content;
                     ob_flush();
                     flush();
                 }
-
-                \Log::info('💾 Sauvegarde du message complet:', ['content' => $fullResponse]);
 
                 // Create assistant message with complete response
                 $conversation->messages()->create([
@@ -289,15 +280,11 @@ class ConversationController extends Controller
                 // Update conversation timestamp
                 $conversation->updateLastMessageTime();
 
-                \Log::info('✅ Streaming terminé avec succès');
-
             } catch (\Exception $e) {
-                \Log::error('❌ Erreur de streaming:', ['error' => $e->getMessage()]);
                 echo " " . json_encode(['error' => 'An error occurred']) . "\n\n";
             }
         });
 
-        // Définir les en-têtes correctement pour StreamedResponse
         $response->headers->set('Content-Type', 'text/event-stream');
         $response->headers->set('Cache-Control', 'no-cache');
         $response->headers->set('Connection', 'keep-alive');
@@ -372,7 +359,7 @@ class ConversationController extends Controller
                 // Generate title based on assistant's first message
                 $conversation->generateTitleWithAI();
 
-                // IMPORTANT: Envoyer l'ID de la conversation à la fin du stream
+                // Send conversation ID
                 echo "\n\n__CONVERSATION_ID__:" . $conversation->id . "__END__";
 
             } catch (\Exception $e) {
@@ -383,7 +370,6 @@ class ConversationController extends Controller
             }
         });
 
-        // Définir les en-têtes correctement pour StreamedResponse
         $response->headers->set('Content-Type', 'text/event-stream');
         $response->headers->set('Cache-Control', 'no-cache');
         $response->headers->set('Connection', 'keep-alive');
