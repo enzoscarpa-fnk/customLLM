@@ -160,7 +160,9 @@ class ChatService
 
                 // Auto-detect weather-related prompts
                 if ($this->isWeatherRequest($content)) {
+                    logger()->info('✅ Weather request detected: ' . $content);
                     $location = $this->extractLocationFromWeatherRequest($content);
+                    logger()->info('🎯 Extracted location: ' . ($location ?? 'NULL'));
 
                     if ($location) {
                         $isInFrench = $this->isFrench($originalContent);
@@ -170,9 +172,12 @@ class ChatService
                             $message['content'] = "L'utilisateur demande la météo. Voici les données pour {$location}: {$weatherData}. Présente ces informations de manière conversationnelle en français.";
                         } else {
                             $message['content'] = "User asks for weather. Here's the data for {$location}: {$weatherData}. Present this information in a conversational way in english.";
+                            logger()->info('❌ No location extracted, falling back to normal chat');
                         }
                         return $message;
                     }
+                } else {
+                    logger()->info('❌ Not recognized as weather request: ' . $content);
                 }
 
                 // Look for other commands in message
@@ -238,44 +243,51 @@ class ChatService
 
     private function getWeatherData(string $location, bool $isFrench = true): string
     {
-        try {
-            $url = config('services.openweather.base_url') . '/weather';
+        $normalizedLocation = $this->normalizeLocationName($location);
 
-            $response = Http::get($url, [
-                'q' => $location,
-                'appid' => config('services.openweather.api_key'),
-                'units' => 'metric',
-                'lang' => $isFrench ? 'fr' : 'en'
-            ]);
+        // Try variants of the location
+        $locationVariants = [
+            $normalizedLocation,
+            str_replace(' ', '-', $normalizedLocation),
+            str_replace('-', ' ', $normalizedLocation),
+            $location // Fallback
+        ];
 
-            if ($response->successful()) {
-                $data = $response->json();
+        foreach ($locationVariants as $variant) {
+            try {
+                logger()->info("Trying weather API with location variant: $variant");
 
-                if ($isFrench) {
-                    return sprintf(
-                        "%s, température: %d°C, ressenti: %d°C, %s",
-                        $data['name'],
-                        round($data['main']['temp']),
-                        round($data['main']['feels_like']),
-                        $data['weather'][0]['description']
-                    );
-                } else {
-                    return sprintf(
-                        "%s, temperature: %d°C, feels like: %d°C, %s",
-                        $data['name'],
-                        round($data['main']['temp']),
-                        round($data['main']['feels_like']),
-                        $data['weather'][0]['description']
-                    );
+                // Current weather
+                $currentUrl = config('services.openweather.base_url') . '/weather';
+                $currentResponse = Http::get($currentUrl, [
+                    'q' => $variant,
+                    'appid' => config('services.openweather.api_key'),
+                    'units' => 'metric',
+                    'lang' => $isFrench ? 'fr' : 'en'
+                ]);
+
+                if ($currentResponse->successful()) {
+                    $forecastUrl = config('services.openweather.base_url') . '/forecast';
+                    $forecastResponse = Http::get($forecastUrl, [
+                        'q' => $variant,
+                        'appid' => config('services.openweather.api_key'),
+                        'units' => 'metric',
+                        'lang' => $isFrench ? 'fr' : 'en'
+                    ]);
+
+                    if ($forecastResponse->successful()) {
+                        $currentData = $currentResponse->json();
+                        $forecastData = $forecastResponse->json();
+                        return $this->formatWeatherWithForecast($currentData, $forecastData, $isFrench);
+                    }
                 }
+            } catch (\Exception $e) {
+                logger()->warning("Failed with variant '$variant': " . $e->getMessage());
+                continue; // Try with next variant
             }
-
-            return "Weather API error: " . $response->status() . " - " . $response->body();
-
-        } catch (\Exception $e) {
-            logger()->error('Weather API error: ' . $e->getMessage());
-            return "Error: " . $e->getMessage();
         }
+
+        return $isFrench ? "Ville introuvable" : "City not found";
     }
 
     private function isWeatherRequest(string $content): bool
@@ -304,12 +316,15 @@ class ChatService
             'quelle météo', 'comment est la météo', 'c\'est quoi la météo',
             'il fait beau', 'il fait mauvais', 'il pleut', 'il neige',
             'fait-il', 'pleut-il', 'neige-t-il', 'y a-t-il du soleil',
+            'quelle prévision', 'quelles prévisions', 'quelle prevision',
+            'quelles previsions',
 
             // English
             'what\'s the weather', 'how\'s the weather', 'what is the weather',
             'how is the weather', 'weather like', 'is it raining', 'is it sunny',
             'is it cold', 'is it hot', 'is it snowing', 'does it rain',
-            'will it rain', 'gonna rain', 'going to rain'
+            'will it rain', 'gonna rain', 'going to rain', 'what\'s the forecast',
+            'what is the forecast'
         ];
 
         $content = strtolower($content);
@@ -341,31 +356,66 @@ class ChatService
         $content = strtolower($content);
 
         $patterns = [
-            // French patterns
-            '/(?:météo|meteo|temps|température|temperature|climat).*?(?:à|pour|sur|dans|en)\s+([a-záàâäéèêëïîôöùûüÿç\-\s]+?)(?:\s|$|\?|!|,|\.)/i',
-            '/(?:quel temps|comment est|quelle météo).*?(?:à|pour|sur|dans|en)\s+([a-záàâäéèêëïîôöùûüÿç\-\s]+?)(?:\s|$|\?|!|,|\.)/i',
-            '/(?:temps qu\'il fait|temps il fait).*?(?:à|pour|sur|dans|en)\s+([a-záàâäéèêëïîôöùûüÿç\-\s]+?)(?:\s|$|\?|!|,|\.)/i',
-            '/(?:à|pour|sur|dans|en)\s+([a-záàâäéèêëïîôöùûüÿç\-\s]+?).*?(?:météo|meteo|temps|température|temperature|il fait)/i',
+            // Specialized
+            '/^(forecast|weather|météo|meteo|prévisions|previsions)\s+(for\s+|in\s+|à\s+|pour\s+|sur\s+|dans\s+|en\s+)?([a-zA-Záàâäéèêëïîôöùûüÿç\-\s\']+?)(?:\s*[\?!,\.]|\s*$)/i',
 
-            // English patterns
-            '/(?:weather|temperature|temp|climate).*?(?:in|at|for|on)\s+([a-zA-Z\-\s]+?)(?:\s|$|\?|!|,|\.)/i',
-            '/(?:what\'s|how\'s|what is|how is).*?(?:weather|temperature).*?(?:in|at|for|on)\s+([a-zA-Z\-\s]+?)(?:\s|$|\?|!|,|\.)/i',
-            '/(?:in|at|for|on)\s+([a-zA-Z\-\s]+?).*?(?:weather|temperature|temp|climate|raining|sunny|cold|hot)/i'
+            // Starts with a keyword
+            '/^(what\'?s?|how\'?s?|quel|quelle|comment)\s+.*?(forecast|weather|météo|meteo|temps|prévisions|previsions).*?(for|in|at|on|à|pour|sur|dans|en)\s+([a-zA-Záàâäéèêëïîôöùûüÿç\-\s\']+?)(?:\s*[\?!,\.]|\s*$)/i',
+
+            // Reversed
+            '/^([a-zA-Záàâäéèêëïîôöùûüÿç\-\s\']+?)\s+(forecast|weather|météo|meteo|prévisions|previsions|temps)(?:\s*[\?!,\.]|\s*$)/i',
+
+            // In + city
+            '/\b(in|at|on|à|pour|sur|dans|en)\s+([a-zA-Záàâäéèêëïîôöùûüÿç\-\s\']+?)(?:\s|$|\?|!|,|\.)/i',
+
+            // Complete expression
+            '/(?:what\'?s?\s+the\s+|how\'?s?\s+the\s+|quel\s+est\s+le\s+|comment\s+est\s+le\s+)?(weather|forecast|météo|meteo|temps|prévisions|previsions).*?(for|in|at|on|à|pour|sur|dans|en)\s+([a-zA-Záàâäéèêëïîôöùûüÿç\-\s\']+?)(?:\s*[\?!,\.]|\s*$)/i',
+
+            // Specific weather
+            '/(?:will\s+it\s+|va-t-il\s+|est-ce\s+qu\'il\s+va\s+)?(rain|snow|be\s+sunny|be\s+hot|be\s+cold|pleuvoir|neiger|faire\s+beau|faire\s+chaud|faire\s+froid).*?(in|at|on|à|pour|sur|dans|en)\s+([a-zA-Záàâäéèêëïîôöùûüÿç\-\s\']+?)(?:\s*[\?!,\.]|\s*$)/i',
+
+            // FR "il fait" pattern
+            '/(il\s+fait\s+|fait-il\s+|quel\s+temps\s+fait-il\s+|temps\s+qu\'?il\s+fait\s+|comment\s+est\s+le\s+temps\s+).*?(à|pour|sur|dans|en)\s+([a-záàâäéèêëïîôöùûüÿç\-\s]+?)(?:\s*[\?!,\.]|\s*$)/i',
+
+            // Generic
+            '/(weather|forecast|température|temperature|climat|climate|météo|meteo|temps|prévisions|previsions).*?(?:for|in|at|on|à|pour|sur|dans|en)\s+([a-zA-Záàâäéèêëïîôöùûüÿç\-\s\']+?)(?:\s*[\?!,\.]|\s*$)/i',
+
+            // Catch-all
+            '/\b(today|tomorrow|now|currently|actuellement|maintenant|demain|aujourd\'?hui).*?(in|at|on|à|pour|sur|dans|en)\s+([a-zA-Záàâäéèêëïîôöùûüÿç\-\s\']+?)(?:\s*[\?!,\.]|\s*$)/i',
+
+            // Ultra-generic
+            '/\b(weather|forecast|température|temperature|climat|climate|météo|meteo|temps|prévisions|previsions|rain|snow|sun|wind|pluie|neige|soleil|vent|hot|cold|chaud|froid)\b.*?\b([A-Z][a-zA-Záàâäéèêëïîôöùûüÿç\-\s\']*[a-zA-Záàâäéèêëïîôöùûüÿç])(?:\s*[\?!,\.]|\s*$)/i'
         ];
 
-        foreach ($patterns as $pattern) {
+        foreach ($patterns as $index => $pattern) {
             if (preg_match($pattern, $content, $matches)) {
-                $location = trim($matches[1]);
+                logger()->info("🎯 Pattern $index matched: " . substr($pattern, 0, 50) . "...");
+
+                // Determinates which group contains the city
+                $location = '';
+                if ($index == 0) { // First pattern : group 3
+                    $location = trim($matches[3] ?? '');
+                } elseif ($index == 1) { // Second pattern : group 4
+                    $location = trim($matches[4] ?? '');
+                } elseif (in_array($index, [2, 3, 4, 5, 6, 7, 8])) { // Middle patterns : groups 2 or 3
+                    $location = trim($matches[3] ?? $matches[2] ?? '');
+                } else { // Final patterns : group 2
+                    $location = trim($matches[2] ?? '');
+                }
+
                 $location = $this->cleanLocation($location);
-                if (!empty($location)) {
-                    logger()->info('Extracted location: ' . $location . ' from: ' . $content);
+
+                if (!empty($location) && strlen($location) > 1) {
+                    logger()->info("✅ Final extracted location: '$location' from: '$content'");
                     return $location;
                 }
             }
         }
 
+        logger()->info("❌ No location extracted from: '$content'");
         return null;
     }
+
 
     private function cleanLocation(string $location): string
     {
@@ -389,6 +439,29 @@ class ChatService
         $result = trim(implode(' ', $cleanWords));
         return $result;
     }
+
+    private function normalizeLocationName(string $location): string
+    {
+        $location = trim($location);
+
+        $location = mb_convert_case($location, MB_CASE_TITLE, 'UTF-8');
+
+        $variants = [
+            $location,
+            str_replace(' ', '-', $location),
+            str_replace('-', ' ', $location),
+            str_replace([' ', '-'], '', $location),
+        ];
+
+        foreach ($variants as $variant) {
+            if (strlen(trim($variant)) > 1) {
+                return $variant;
+            }
+        }
+
+        return $location;
+    }
+
 
     private function isFrench(string $content): bool
     {
@@ -423,6 +496,84 @@ class ChatService
         }
 
         return $frenchCount >= 1;
+    }
+
+    private function formatWeatherWithForecast(array $currentData, array $forecastData, bool $isFrench = true): string
+    {
+        // Current weather
+        if ($isFrench) {
+            $current = sprintf(
+                "MAINTENANT à %s: %d°C (ressenti %d°C), %s",
+                $currentData['name'],
+                round($currentData['main']['temp']),
+                round($currentData['main']['feels_like']),
+                $currentData['weather'][0]['description']
+            );
+        } else {
+            $current = sprintf(
+                "NOW in %s: %d°C (feels like %d°C), %s",
+                $currentData['name'],
+                round($currentData['main']['temp']),
+                round($currentData['main']['feels_like']),
+                $currentData['weather'][0]['description']
+            );
+        }
+
+        // Forecast
+        $forecasts = [];
+        $processedDays = [];
+
+        foreach ($forecastData['list'] as $forecast) {
+            $date = date('Y-m-d', $forecast['dt']);
+            $hour = date('H', $forecast['dt']);
+
+            // Forecast at noon for each day
+            if ($hour == '12' && !in_array($date, $processedDays) && count($forecasts) < 3) {
+                $processedDays[] = $date;
+
+                if ($isFrench) {
+                    $dayName = $this->getFrenchDayName($forecast['dt']);
+                    $forecasts[] = sprintf(
+                        "%s: %d°C, %s",
+                        $dayName,
+                        round($forecast['main']['temp']),
+                        $forecast['weather'][0]['description']
+                    );
+                } else {
+                    $dayName = date('l', $forecast['dt']);
+                    $forecasts[] = sprintf(
+                        "%s: %d°C, %s",
+                        $dayName,
+                        round($forecast['main']['temp']),
+                        $forecast['weather'][0]['description']
+                    );
+                }
+            }
+        }
+
+        $forecastText = implode(', ', $forecasts);
+
+        if ($isFrench) {
+            return $current . " | PRÉVISIONS: " . $forecastText;
+        } else {
+            return $current . " | FORECAST: " . $forecastText;
+        }
+    }
+
+    private function getFrenchDayName(int $timestamp): string
+    {
+        $days = [
+            'Sunday' => 'Dimanche',
+            'Monday' => 'Lundi',
+            'Tuesday' => 'Mardi',
+            'Wednesday' => 'Mercredi',
+            'Thursday' => 'Jeudi',
+            'Friday' => 'Vendredi',
+            'Saturday' => 'Samedi'
+        ];
+
+        $englishDay = date('l', $timestamp);
+        return $days[$englishDay] ?? $englishDay;
     }
 
 }
