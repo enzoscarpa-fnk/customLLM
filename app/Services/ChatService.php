@@ -138,26 +138,6 @@ class ChatService
                 $content = $message['content'];
                 $originalContent = $content;
 
-                // Look for weather command in message
-                if (str_starts_with(trim($content), '/weather')) {
-                    $location = trim(str_replace('/weather', '', $content));
-
-                    if (empty($location)) {
-                        $message['content'] = "Answer to the user: To get the weather for a specific location, please type '/weather [city]'";
-                        return $message;
-                    }
-
-                    $isInFrench = $this->isFrench($originalContent);
-                    $weatherData = $this->getWeatherData($location, $isInFrench);
-
-                    if ($isInFrench) {
-                        $message['content'] = "Voici la météo pour {$location}: {$weatherData}";
-                    } else {
-                        $message['content'] = "Here's the weather for {$location}: {$weatherData}";
-                    }
-                    return $message;
-                }
-
                 // Auto-detect weather-related prompts
                 if ($this->isWeatherRequest($content)) {
                     logger()->info('✅ Weather request detected: ' . $content);

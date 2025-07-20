@@ -33,9 +33,9 @@ const newCommand = ref({
 
 const predefinedCommands = [
     {
-        name: "/weather",
-        description: "Get current weather and forecasts",
-        response: "Display the current weather and forecast for the specified location or user's location."
+        name: "/time",
+        description: "Get current time and date",
+        response: "Display the current time and date."
     },
     {
         name: "/quote",
@@ -333,7 +333,7 @@ const cancelClearAll = () => {
                         placeholder="/mycommand"
                         :disabled="isLoading"
                     >
-                    <p class="mt-1 text-xs text-neutral-400">Must start with "/" (e.g., /weather, /help)</p>
+                    <p class="mt-1 text-xs text-neutral-400">Must start with "/" (e.g., /feedback, /explain)</p>
                 </div>
 
                 <!-- Description -->
@@ -415,7 +415,7 @@ const cancelClearAll = () => {
             <ul class="text-sm text-yellow-400 space-y-1">
                 <li class="flex items-start">
                     <span class="mr-2 mt-0.5">•</span>
-                    <span>Type your command in any conversation (e.g., "/weather Paris")</span>
+                    <span>Type your command in any conversation (e.g., "/quote Martin Luther King")</span>
                 </li>
                 <li class="flex items-start">
                     <span class="mr-2 mt-0.5">•</span>
