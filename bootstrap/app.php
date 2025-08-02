@@ -17,7 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        // Exclure les routes de streaming du CSRF
+        $middleware->validateCsrfTokens(except: [
+            'chat/stream',
+            'chat/*/stream',
+            'sanctum/csrf-cookie',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

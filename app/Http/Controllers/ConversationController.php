@@ -266,7 +266,9 @@ class ConversationController extends Controller
                     $fullResponse .= $content;
 
                     echo $content;
-                    ob_flush();
+                    if (ob_get_level()) {
+                        ob_flush();
+                    }
                     flush();
                 }
 
@@ -342,7 +344,9 @@ class ConversationController extends Controller
                     $content = $response->choices[0]->delta->content ?? '';
                     $fullResponse .= $content;
                     echo $content;
-                    ob_flush();
+                    if (ob_get_level()) {
+                        ob_flush();
+                    }
                     flush();
                 }
 

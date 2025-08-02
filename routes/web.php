@@ -8,7 +8,10 @@ use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\UserInstructionController;
 
 Route::get('/', function () {
-    return redirect()->route('chat.index');
+    if (auth()->check()) {
+        return redirect()->route('chat.index');
+    }
+    return redirect()->route('login');
 });
 
 Route::get('/ask', [AskController::class, 'index'])->name('ask.index');
