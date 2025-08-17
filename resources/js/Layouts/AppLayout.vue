@@ -214,8 +214,8 @@ const logout = () => {
                 <!-- Responsive Navigation Menu -->
                 <div :class="{'block': showingNavigationDropdown, 'hidden': ! showingNavigationDropdown}" class="sm:hidden bg-neutral-800">
                     <div class="pt-2 pb-3 space-y-1">
-                        <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')" class="text-neutral-200 hover:text-yellow-400">
-                            Dashboard
+                        <ResponsiveNavLink :href="route('home')" :active="route().current('home')" class="text-neutral-200 hover:text-yellow-400">
+                            Home
                         </ResponsiveNavLink>
                     </div>
 

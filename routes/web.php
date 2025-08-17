@@ -1,30 +1,15 @@
 <?php
 
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Controllers\AskController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\UserInstructionController;
-
-Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route('chat.index');
-    }
-    return redirect()->route('login');
-});
-
-Route::get('/ask', [AskController::class, 'index'])->name('ask.index');
-Route::post('/ask', [AskController::class, 'ask'])->name('ask.post');
 
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/', [ConversationController::class, 'index'])->name('home');
 
     Route::get('/chat', [ConversationController::class, 'index'])->name('chat.index');
     Route::post('/chat', [ConversationController::class, 'store'])->name('chat.store');
